@@ -1,0 +1,88 @@
+platforms:
+    armv7-ios:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            frameworks: []
+            linkFlags: []
+    arm64-ios:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            frameworks: []
+            linkFlags: []
+    x86_64-ios:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            frameworks: []
+            linkFlags: []
+    armv7-android:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeJars: []
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            linkFlags: []
+            jetifier: true
+    arm64-android:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeJars: []
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            linkFlags: []
+            jetifier: true
+    x86_64-osx:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            frameworks: []
+            linkFlags: []
+    x86_64-linux:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            linkFlags: []
+    x86-win32:
+        context:
+            excludeLibs: [librecord, vpx, libprofilerext, libliveupdate, libphysics, libLinearMath, libBulletDynamics, libBulletCollision, libBox2D]
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [librecord_null.lib, libprofilerext_null.lib, libliveupdate_null.lib, libphysics_null.lib]
+            linkFlags: []
+    x86_64-win32:
+        context:
+            excludeLibs: [librecord, vpx, libprofilerext, libliveupdate, libphysics, libLinearMath, libBulletDynamics, libBulletCollision, libBox2D]
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [librecord_null.lib, libprofilerext_null.lib, libliveupdate_null.lib, libphysics_null.lib]
+            linkFlags: []
+    js-web:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeJsLibs: []
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            linkFlags: []
+    wasm-web:
+        context:
+            excludeLibs: [record, vpx, profilerext, liveupdate, physics, LinearMath, BulletDynamics, BulletCollision, Box2D]
+            excludeJsLibs: []
+            excludeSymbols: [ProfilerExt]
+            symbols: []
+            libs: [record_null, profilerext_null, liveupdate_null, physics_null]
+            linkFlags: []

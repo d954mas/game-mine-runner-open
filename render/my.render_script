@@ -1,0 +1,132 @@
+local COMMON = require "libs.common"
+local CONSTANTS = require "libs.constants"
+local GameRender = require "scenes.game.game_render"
+local TAG = "Render"
+
+---@class Render
+local Render = COMMON.new_n28s()
+--region init
+function Render:init()
+	self.renders = {
+		game = GameRender()
+	}
+	for _, render in pairs(self.renders) do
+		render:init()
+	end
+
+	self.clear_color = COMMON.LUME.color_parse_hex("#000000")
+	--самый первый размер это размер игры. Иначе камеры плохо отрабатывыют в html  билде
+	self.screen_size = {
+		w = CONSTANTS.PLATFORM_IS_WEB and render.get_width() or render.get_window_width(),
+		h = CONSTANTS.PLATFORM_IS_WEB and render.get_height() or render.get_window_height(),
+	}
+	self.config_size = {
+		w = render.get_width(),
+		h = render.get_height()
+	}
+	self.size = {
+		w = render.get_width();
+		h = render.get_height()
+	}
+
+	self:init_predicates()
+	self:init_render_targets()
+	self:init_buffers()
+	self:init_constants_buffers()
+	self:register_messages()
+	self.clear = { [render.BUFFER_COLOR_BIT] = self.clear_color, [render.BUFFER_DEPTH_BIT] = 1, [render.BUFFER_STENCIL_BIT] = 0 }
+
+	COMMON.RENDER = self
+	self:window_size_changed()
+end
+
+function Render:create_render_target(name, params)
+	-- render target buffer parameters
+	local color_params = { format = params.format or render.FORMAT_RGBA,
+						   width = assert(params.w),
+						   height = assert(params.h),
+						   min_filter = params.min_filter or render.FILTER_LINEAR,
+						   mag_filter = params.mag_filter or render.FILTER_LINEAR,
+						   u_wrap = params.u_wrap or render.WRAP_CLAMP_TO_EDGE,
+						   v_wrap = params.v_wrap or render.WRAP_CLAMP_TO_EDGE }
+
+	local depth_params
+	if (params.has_depth) then
+		depth_params = { format = render.FORMAT_DEPTH,
+						 width = params.w,
+						 height = params.h,
+						 u_wrap = params.u_wrap or render.WRAP_CLAMP_TO_EDGE,
+						 v_wrap = params.v_wrap or render.WRAP_CLAMP_TO_EDGE }
+	end
+
+	return {
+		target = render.render_target(assert(name), { [render.BUFFER_COLOR_BIT] = color_params, [render.BUFFER_DEPTH_BIT] = depth_params }),
+		w = params.w,
+		h = params.h
+	}
+end
+
+function Render:init_render_targets()
+end
+
+function Render:init_buffers()
+	self.buffers = {}
+end
+
+function Render:init_predicates()
+	self.predicates = {
+		tile = render.predicate({ "tile" }),
+		model = render.predicate({ "model" }),
+		gui = render.predicate({ "gui" }),
+		text = render.predicate({ "text" }),
+		particle = render.predicate({ "particle" }),
+	}
+
+end
+
+function Render:init_constants_buffers()
+
+end
+
+function Render:register_messages()
+	self.msg_receiver = COMMON.MSG()
+	self.msg_receiver:add("window_resized", function(...)
+		local prev_w = self.screen_size.w
+		local prev_h = self.screen_size.h
+		self.screen_size.w = render.get_window_width()
+		self.screen_size.h = render.get_window_height()
+		if (prev_w ~= self.screen_size.w or prev_h ~= self.screen_size.h) then
+			COMMON.i("screen size changed. from " .. "w:" .. prev_w .. " h:" .. prev_h
+					.. " to w:" .. self.screen_size.w .. " h:" .. self.screen_size.h, TAG)
+			self:window_size_changed()
+			COMMON.EVENT_BUS:event(COMMON.EVENTS.WINDOW_RESIZED, { width = self.screen_size.w, height = self.screen_size.h,
+																   prev_width = prev_w, prev_height = prev_h })
+		end
+	end)
+end
+--endregion
+
+
+function Render:window_size_changed()
+	self.gui_proj = vmath.matrix4_orthographic(0, self.screen_size.w, 0, self.screen_size.h, -1000, 1000)
+	self.empty_view = vmath.matrix4()
+	self.renders.game:window_size_changed()
+end
+
+
+function Render:update(dt)
+--	self:render_clear()
+	--if (SM.scene == nil or SM.scene._name == SM.SCENES.EXPERIMENTS_MENU) then
+	--	self:render_base()
+	--	self:render_gui()
+	--elseif (SM.scene._name == SM.SCENES.GAME) then
+		self.renders.game:update(dt)
+	--end
+end
+
+function Render:on_message(message_id, message)
+	self.msg_receiver:on_message(self, message_id, message)
+	self.renders.game:on_message(message_id,message)
+end
+
+COMMON.N28S.register(Render())

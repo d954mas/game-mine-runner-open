@@ -1,0 +1,15 @@
+name: "defos"
+
+platforms:
+  x86_64-osx:
+    context:
+        frameworks: ["AppKit"]
+        
+  x86-osx:
+    context:
+        frameworks: ["AppKit"]
+
+  x86_64-linux:
+    context:      
+        frameworks: ["X11", "Xrender"]
+        libs: ["Xrender", "Xfixes"]

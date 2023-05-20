@@ -1,0 +1,9 @@
+[project]
+dependencies#0 = https://github.com/DanEngelbrecht/LuaScriptInstance/archive/master.zip
+dependencies#1 = https://github.com/defold/extension-safearea/archive/refs/tags/1.3.1.zip
+dependencies#2 = https://github.com/d954mas/defold-utf8/archive/master.zip
+dependencies#3 = https://github.com/defold/extension-admob/archive/refs/tags/3.0.1.zip
+
+[game]
+target = play_market
+

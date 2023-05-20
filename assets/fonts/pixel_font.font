@@ -1,0 +1,17 @@
+font: "/assets/fonts/ttf/barcade-brawl_my.ttf"
+material: "/builtins/fonts/font.material"
+size: 32
+antialias: 0
+alpha: 1.0
+outline_alpha: 1.0
+outline_width: 1.0
+shadow_alpha: 1.0
+shadow_blur: 0
+shadow_x: -2.0
+shadow_y: -2.0
+extra_characters: "\320\220\320\221\320\222\320\223\320\224\320\225\320\226\320\227\320\230\320\231\320\232\320\233\320\234\320\235\320\236\320\237\320\240\320\241\320\242\320\243\320\244\320\245\320\246\320\247\320\250\320\251\320\254\320\253\320\252\320\255\320\256\320\257"
+output_format: TYPE_BITMAP
+all_chars: false
+cache_width: 0
+cache_height: 0
+render_mode: MODE_MULTI_LAYER

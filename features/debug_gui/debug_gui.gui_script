@@ -1,0 +1,206 @@
+local COMMON = require "libs.common"
+local GUI = require "libs_project.gui.gui"
+local SceneDebugView = require "debug.view.scene_debug_view"
+local WORLD = require "world.world"
+local DEBUG_INFO = require "debug.debug_info"
+
+
+local Script = COMMON.new_n28s()
+
+function Script:bind_vh()
+	self.vh = {
+		node_root = gui.get_node("root"),
+		lbl_cpu = gui.get_node("lbl_cpu"),
+		lbl_memory = gui.get_node("lbl_memory"),
+	}
+	self.views = {
+		btn_top_panel_show = GUI.ButtonIconTest("btn_top_panel_show"),
+		btn_profiler = GUI.ButtonIconTest("btn_profiler"),
+
+		btn_scene = GUI.ButtonIconTest("btn_scene"),
+		scene_debug_view = SceneDebugView("scene_debug_view"),
+		panels = {
+			game = {
+				root = gui.get_node("panel_game"),
+				btn_activate = GUI.ButtonIconTest("btn_game"),
+				childs = {
+					btn_reset = GUI.ButtonScale("btn_reset"),
+					btn_gems = GUI.ButtonScale("btn_gems"),
+					checkbox_show_ecs = GUI.CheckboxWithLabel("panel_game/checkbox_show_ecs"),
+					lbl_ecs_systems = gui.get_node("panel_game/lbl_ecs_systems"),
+					lbl_info = gui.get_node("panel_game/lbl_info"),
+					checkbox_draw_debug_info = GUI.CheckboxWithLabel("panel_game/checkbox_draw_debug_info"),
+				},
+				config = { show_ecs = false }
+			}
+		}
+	}
+end
+
+function Script:init_gui()
+	self.views.scene_debug_view:set_enabled(false)
+	self.views.btn_top_panel_show:set_input_listener(function()
+		self:input_toggle_gui_visible()
+	end)
+	self.views.btn_profiler:set_input_listener(function()
+		self.views.btn_profiler.show_profiler = not self.views.btn_profiler.show_profiler
+		if (profiler) then
+			profiler.enable_ui(self.views.btn_profiler.show_profiler)
+		end
+	end)
+	self.views.btn_scene:set_input_listener(function()
+		self.views.scene_debug_view:set_enabled(not gui.is_enabled(self.views.scene_debug_view.vh.root))
+	end)
+	self.views.panels.game.btn_activate:set_input_listener(function()
+		self:panel_toggle(self.views.panels.game)
+	end)
+	self:panel_hide_all()
+
+	local chb_show_ecs = self.views.panels.game.childs.checkbox_show_ecs
+	gui.set_enabled(self.views.panels.game.childs.lbl_ecs_systems, self.views.panels.game.config.show_ecs)
+	chb_show_ecs:set_checked(self.views.panels.game.config.show_ecs)
+	chb_show_ecs:set_input_listener(function()
+		self.views.panels.game.config.show_ecs = chb_show_ecs.checked
+		gui.set_enabled(self.views.panels.game.childs.lbl_ecs_systems, chb_show_ecs.checked)
+	end)
+
+	local checkbox_draw_debug_info = self.views.panels.game.childs.checkbox_draw_debug_info
+	checkbox_draw_debug_info:set_checked(WORLD.storage.debug:draw_debug_info_is())
+	checkbox_draw_debug_info:set_input_listener(function()
+		WORLD.storage.debug:draw_debug_info_set(checkbox_draw_debug_info.checked)
+	end)
+
+	self.views.panels.game.childs.btn_reset:set_input_listener(function()
+		WORLD.storage:reset()
+	end)
+
+	self.views.panels.game.childs.btn_gems:set_input_listener(function()
+		WORLD.storage.game:gems_add(1000)
+	end)
+
+	self.views.panels.game.update = function(dt)
+		local game = self.views.panels.game
+		local config = self.views.panels.game.config
+
+		if (gui.is_enabled(game.root)) then
+			gui.set_text(game.childs.lbl_info, string.format(
+					"ecs: %0.2f",
+					DEBUG_INFO.ecs_update_dt_max_second * 1000))
+
+		end
+
+		if config.show_ecs then
+			local text = ""
+			if (WORLD.game.ecs_game and WORLD.game.ecs_game.ecs) then
+				text = text .. string.format("%-30s %-7s %-9s %-6s %-6s %-6s \n", "Name", "Active", "Entities", "T", "TAvg", "TMax")
+				local systems = COMMON.LUME.clone_shallow(WORLD.game.ecs_game.ecs.systems)
+				table.sort(systems, function(a, b)
+					return a._time.average_value > b._time.average_value
+				end)
+				for _, sys in ipairs(systems) do
+					local count = 0
+					for _, _ in pairs(sys.entities) do
+						count = count + 1
+					end
+					text = text .. string.format("%-30s %-7s %-9d %-6.2f %-6.2f %-6.2f\n", sys.name or "no_name", tostring(sys.active), count,
+							sys._time.current * 1000, sys._time.average_value * 1000, sys._time.max * 1000)
+				end
+			end
+			gui.set_text(game.childs.lbl_ecs_systems, text)
+		end
+	end
+end
+
+function Script:panel_hide_all()
+	for _, panel in pairs(self.views.panels) do
+		gui.set_enabled(panel.root, false)
+	end
+end
+
+function Script:panel_update(dt)
+	for _, panel in pairs(self.views.panels) do
+		if (gui.is_enabled(panel.root) and panel.update) then
+			panel.update(dt)
+		end
+	end
+end
+
+function Script:panel_toggle(panel)
+	if (not gui.is_enabled(panel.root)) then
+		self:panel_show(panel)
+	else
+		self:panel_hide_all()
+	end
+end
+
+function Script:panel_show(panel)
+	self:panel_hide_all()
+	gui.set_enabled(panel.root, true)
+end
+
+function Script:panel_input(action_id, action)
+	for _, panel in pairs(self.views.panels) do
+		if (panel.btn_activate:on_input(action_id, action)) then return true end
+	end
+
+	for _, panel in pairs(self.views.panels) do
+		if (gui.is_enabled(panel.root)) then
+			for _, child in pairs(panel.childs) do
+				if (type(child) == "table" and child.on_input and child:on_input(action_id, action)) then return true end
+			end
+		end
+	end
+end
+
+function Script:init()
+	gui.set_render_order(15)
+	self:bind_vh()
+	self:init_gui()
+	self.input = COMMON.INPUT()
+	-- self.input.acquire()
+	self.input:add(hash("toggle_top_panel_show_btn"), self.input_toggle_gui_visible, true)
+	self.show = true
+	self:input_toggle_gui_visible()
+	self.input.acquire()
+	timer.delay(3, true, function()
+		self.input.acquire()--make debug always on top of input stack
+	end)
+end
+
+function Script:update(dt)
+	if self.show then
+		if (profiler) then
+			gui.set_text(self.vh.lbl_cpu, "Cpu:" .. string.format("%.2f", profiler.get_cpu_usage()))
+			gui.set_text(self.vh.lbl_memory, "Mem:" .. string.format("%.2f Mb", profiler.get_memory_usage() / 1024 / 1024))
+		end
+		self:panel_update(dt)
+	end
+
+	self.views.scene_debug_view:update(dt)
+end
+
+function Script:final()
+	self.input.release()
+end
+
+function Script:input_toggle_gui_visible()
+	self.show = not self.show
+	if (profiler) then
+		profiler.set_ui_vsync_wait_visible(false)
+	end
+	gui.set_enabled(self.vh.node_root, self.show)
+	return true
+end
+
+function Script:on_input(action_id, action)
+	if (self.input:on_input(self, action_id, action)) then return true end
+	if (self.views.btn_top_panel_show:on_input(action_id, action)) then return true end
+	if (self.show) then
+		if (self.views.btn_profiler:on_input(action_id, action)) then return true end
+		if (self.views.btn_scene:on_input(action_id, action)) then return true end
+
+		if (self:panel_input(action_id, action)) then return true end
+	end
+end
+
+COMMON.N28S.register(Script())

@@ -1,0 +1,6 @@
+material: "/assets/materials/mesh.material"
+vertices: "/assets/meshes/mesh_3.buffer"
+textures: "/assets/textures/rgb/tunnel_3.png"
+primitive_type: PRIMITIVE_TRIANGLES
+position_stream: "position"
+normal_stream: "normal"

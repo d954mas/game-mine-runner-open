@@ -1,0 +1,9 @@
+name: "font"
+tags: "gui_shop_skin_text"
+vertex_program: "/builtins/fonts/font-df.vp"
+fragment_program: "/builtins/fonts/font-df.fp"
+vertex_space: VERTEX_SPACE_WORLD
+vertex_constants {
+  name: "view_proj"
+  type: CONSTANT_TYPE_VIEWPROJ
+}

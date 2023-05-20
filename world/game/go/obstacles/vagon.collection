@@ -1,0 +1,60 @@
+name: "default"
+scale_along_z: 0
+embedded_instances {
+  id: "root"
+  children: "model"
+  data: ""
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
+embedded_instances {
+  id: "model"
+  data: "components {\n"
+  "  id: \"mesh\"\n"
+  "  component: \"/vagon_scene/meshes/vagon.mesh\"\n"
+  "  position {\n"
+  "    x: 0.0\n"
+  "    y: -0.05\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: -0.70710677\n"
+  "    z: 0.0\n"
+  "    w: 0.70710677\n"
+  "  }\n"
+  "  property_decls {\n"
+  "  }\n"
+  "}\n"
+  ""
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.5
+    y: 1.5
+    z: 1.5
+  }
+}

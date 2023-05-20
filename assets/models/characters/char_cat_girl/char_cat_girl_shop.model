@@ -1,0 +1,7 @@
+mesh: "/assets/models/characters/char_cat_girl/char_cat_girl.dae"
+material: "/assets/materials/skin_shop.material"
+textures: "/assets/textures/rgb/pallete.png"
+skeleton: "/assets/models/characters/char_cat_girl/char_cat_girl.dae"
+animations: "/assets/models/characters/char_1/character_1.animationset"
+default_animation: "run"
+name: "unnamed"

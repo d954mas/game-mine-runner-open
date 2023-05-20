@@ -1,0 +1,265 @@
+local COMMON = require "libs.common"
+local GUI = require "libs_project.gui.gui"
+local ACTIONS = require "libs.actions.actions"
+local SM = require "libs_project.sm"
+local TWEEN = require "libs.tween"
+local BaseGuiScript = require "libs_project.scripts.base_gui_script"
+local WORLD = require "world.world"
+
+local COLOR_INVISIBLE = vmath.vector4(1, 1, 1, 0)
+local COLOR_WHITE = vmath.vector4(1, 1, 1, 1)
+
+---@class LoseSceneGuiScript:ScriptMain
+local Script = COMMON.class("LoseSceneGuiScript", BaseGuiScript)
+
+function Script:init()
+	BaseGuiScript.init(self, { context_name = COMMON.CONTEXT.NAMES.LOSE_GUI })
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.MODAL)
+	self.animation_action = ACTIONS.Sequence()
+	self.animation_action.drop_empty = false
+end
+
+function Script:bind_vh()
+	self.vh = {
+		modal = gui.get_node("modal"),
+		modal_revive = gui.get_node("modal_revive"),
+		modal_revive_title = gui.get_node("modal_revive/title"),
+		bottom_right = gui.get_node("bottom_right"),
+		fader = gui.get_node("fader"),
+		title = gui.get_node("title"),
+		modal_revive_touch_zone = gui.get_node("modal_revive/touch_zone"),
+		btn_revive_lbl = gui.get_node("btn_revive/lbl"),
+		lose_modal = {
+			lbl_gems = gui.get_node("lose/score/gems/lbl"),
+			lbl_score = gui.get_node("lose/score/score/lbl"),
+			score_title = gui.get_node("lose/score_title"),
+			score_title_lbl = gui.get_node("lose/score_title/lbl"),
+			new_score_title = gui.get_node("lose/new_score_title"),
+			new_score_title_lbl = gui.get_node("lose/new_score_title/lbl"),
+			btn_more_gems_lbl = gui.get_node("btn_more_gems/lbl"),
+			btn_menu_title_lbl = gui.get_node("btn_menu/title_lbl"),
+			btn_restart_title_lbl = gui.get_node("btn_restart/title_lbl"),
+		}
+	}
+	self.views = {
+		btn_menu = GUI.ButtonScale("btn_menu"),
+		btn_revive = GUI.ButtonScale("btn_revive"),
+		btn_restart = GUI.ButtonScale("btn_restart"),
+		btn_more_gems = GUI.ButtonScale("btn_more_gems"),
+		revive_progress = GUI.ProgressBar({
+			root = gui.get_node("modal_revive" .. "/progress/root"),
+			bg = gui.get_node("modal_revive" .. "/progress/bg"),
+			progress = gui.get_node("modal_revive" .. "/progress/progress"),
+			lbl = gui.get_node("modal_revive" .. "/progress/progress_lbl")
+		}),
+	}
+end
+
+function Script:init_gui()
+	BaseGuiScript.init_gui(self)
+
+	gui.set_text(self.vh.modal_revive_title, COMMON.LOCALIZATION.revive_title())
+	gui.set_text(self.vh.btn_revive_lbl, COMMON.LOCALIZATION.revive_btn_title())
+	gui.set_text(self.vh.title, COMMON.LOCALIZATION.lose_title())
+	gui.set_text(self.vh.lose_modal.score_title_lbl, COMMON.LOCALIZATION.lose_score_title())
+	gui.set_text(self.vh.lose_modal.new_score_title_lbl, COMMON.LOCALIZATION.lose_new_score_title())
+	gui.set_text(self.vh.lose_modal.btn_more_gems_lbl, COMMON.LOCALIZATION.lose_x2_gems_title())
+	gui.set_text(self.vh.lose_modal.btn_menu_title_lbl, COMMON.LOCALIZATION.pause_btn_menu())
+	gui.set_text(self.vh.lose_modal.btn_restart_title_lbl, COMMON.LOCALIZATION.btn_restart_lbl())
+
+	local restart_str = COMMON.LOCALIZATION.btn_restart_lbl()
+	local metrics = resource.get_text_metrics(gui.get_font_resource(gui.get_font(self.vh.lose_modal.btn_restart_title_lbl)),restart_str)
+	local size = gui.get_size(self.vh.lose_modal.btn_restart_title_lbl).x
+	if (metrics.width > size) then
+		local new_scale = 0.85 * size/metrics.width
+		gui.set_scale(self.vh.lose_modal.btn_restart_title_lbl, vmath.vector3(new_scale))
+	end
+	gui.set_text(self.vh.lose_modal.btn_restart_title_lbl, restart_str)
+
+	self.game_state = WORLD.game.state
+	self.score = math.floor(self.game_state.score)
+	self.is_highscore = self.score > self.game_state.highscore
+	gui.set_enabled(self.vh.lose_modal.new_score_title, self.is_highscore)
+	gui.set_enabled(self.vh.lose_modal.score_title, not self.is_highscore)
+	gui.set_text(self.vh.lose_modal.lbl_score, self.score)
+	gui.set_text(self.vh.lose_modal.lbl_gems, self.game_state.gems)
+
+	self.fader_color = gui.get_color(self.vh.fader)
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0
+	gui.set_color(self.vh.fader, start_color)
+	gui.set_enabled(self.vh.modal, false)
+	gui.set_enabled(self.vh.modal_revive, false)
+	gui.set_enabled(self.vh.bottom_right, false)
+
+	self.views.btn_menu:set_input_listener(function()
+	--	WORLD.sdk:ads_commercial(function()
+			SM:close_modals()
+			WORLD.game:lose_to_menu()
+			local ctx_fader = COMMON.CONTEXT:set_context_top_fader()
+			ctx_fader.data:show()
+			ctx_fader:remove()
+		--end)
+	end)
+
+	self.views.btn_restart:set_input_listener(function()
+		local hide_color = vmath.vector4(self.fader_color)
+		hide_color.w = 1
+		self.animation_action:add_action(ACTIONS.TweenGui { object = self.vh.fader, property = "color", v4 = true,
+															to = hide_color, time = 0.5, easing = TWEEN.easing.outCubic })
+		self.animation_action:add_action(function()
+			local ctx = COMMON.CONTEXT:set_context_top_game_gui()
+			ctx.data:powerups_hide()
+			ctx:remove()
+			WORLD.game:restart_run()
+		end)
+		self.animation_action:add_action(function()
+			SM:close_modals()
+		end)
+	end)
+
+	self.views.btn_revive:set_input_listener(function()
+		if(not COMMON.CONSTANTS.PLATFORM_IS_WEB)then
+			--stop timer
+			self.revive_timer = 15--add more time to wait ad loading
+		end
+		WORLD.sdk:ads_rewarded(function(success)
+			if (success) then
+				SM:close_modals()
+				WORLD.game:revive()
+			else
+
+			end
+		end)
+	end)
+
+	self.views.btn_more_gems:set_input_listener(function()
+		WORLD.sdk:ads_rewarded(function(success)
+			if (success) then
+				local current_gems =self.game_state.gems
+				self.game_state.gems = current_gems * 2
+				gui.set_text(self.vh.lose_modal.lbl_gems, self.game_state.gems)
+				WORLD.storage.game:gems_game_set(self.game_state.gems)
+				WORLD.game.tasks:run_add_gems(self.game_state.gems)
+				self.views.btn_more_gems:set_enabled(false)
+			end
+
+		end)
+	end)
+
+	self.views.revive_progress.lbl_format_value = function(progress)
+		return (math.min(5, math.ceil(progress.animation.value)))
+	end
+	self.views.revive_progress:set_value_max(5)
+	self.views.revive_progress:set_value(5, true)
+
+
+end
+
+function Script:animate_hide()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0
+
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.fader, property = "color", v4 = true,
+												to = start_color, time = 0.5, easing = TWEEN.easing.outCubic })
+
+	local object = self.state == "REVIVE" and self.vh.modal_revive or self.vh.modal
+	show_parallel:add_action(ACTIONS.TweenGui { object = object, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	if( self.state == "REVIVE" )then
+		show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+													to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	end
+	self.animation_action:add_action(show_parallel)
+
+
+end
+
+function Script:animate_show()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+	self.state = "REVIVE"
+	self.revive_timer = 5.5
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0.3
+	gui.set_color(self.vh.fader, start_color)
+
+	gui.set_color(self.vh.modal, COLOR_INVISIBLE)
+	gui.set_enabled(self.vh.modal, false)
+	gui.set_color(self.vh.modal_revive, COLOR_INVISIBLE)
+	gui.set_color(self.vh.bottom_right, COLOR_INVISIBLE)
+	gui.set_enabled(self.vh.modal_revive, true)
+	gui.set_enabled(self.vh.bottom_right, true)
+
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.fader, property = "color", v4 = true,
+												to = self.fader_color, time = 0.3, easing = TWEEN.easing.outCubic })
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.modal_revive, property = "color", v4 = true,
+												to = vmath.vector4(1, 1, 1, 1), time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+												to = vmath.vector4(1, 1, 1, 1), time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+
+	self.animation_action:add_action(show_parallel)
+end
+function Script:update(dt)
+	BaseGuiScript.update(self, dt)
+	self.animation_action:update(dt)
+	if (self.animation_action:is_empty()) then
+		if (self.state == "REVIVE") then
+			self.revive_timer = self.revive_timer - dt
+			if (self.revive_timer < 0) then
+				self:lose()
+			end
+			self.views.revive_progress:set_value(self.revive_timer)
+		end
+	end
+
+end
+
+function Script:lose()
+	self.state = "LOSE"
+	self.revive_timer = 0
+
+	gui.set_color(self.vh.modal, COLOR_INVISIBLE)
+	gui.set_enabled(self.vh.modal, true)
+
+	local show_parallel = ACTIONS.Parallel()
+
+	local hide_action = ACTIONS.Parallel()
+
+	hide_action:add_action(ACTIONS.TweenGui { object = self.vh.modal_revive, property = "color", v4 = true,
+											  from = COLOR_WHITE, to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	hide_action:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+											  from = COLOR_WHITE, to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	hide_action:add_action(function()
+		COMMON.coroutine_wait(0.5)
+		gui.set_enabled(self.vh.modal_revive, false)
+		gui.set_enabled(self.vh.bottom_right, false)
+	end)
+
+	show_parallel:add_action(hide_action)
+	show_parallel:add_action(ACTIONS.TweenGui { delay = 0.15, object = self.vh.modal, property = "color", v4 = true,
+												from = COLOR_INVISIBLE, to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.outCubic })
+
+	self.animation_action:add_action(show_parallel)
+end
+
+function Script:on_input(action_id, action)
+	if (self.animation_action:is_empty()) then
+		if (self.views.btn_menu:on_input(action_id, action)) then return true end
+		if (self.views.btn_revive:on_input(action_id, action)) then return true end
+		if (self.views.btn_restart:on_input(action_id, action)) then return true end
+		if (self.views.btn_more_gems:on_input(action_id, action)) then return true end
+		if (self.state == "REVIVE" and action_id == COMMON.HASHES.INPUT.TOUCH and action.pressed) then
+			if (not gui.pick_node(self.vh.modal_revive_touch_zone, action.x, action.y)) then
+				self:lose()
+			end
+		end
+	end
+end
+
+COMMON.N28S.register_scripts({ Script() })

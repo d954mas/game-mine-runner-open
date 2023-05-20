@@ -1,0 +1,13 @@
+local COMMON = require "libs.common"
+
+---@class ScriptShop
+local Script = COMMON.new_n28s()
+
+function Script:init()
+	COMMON.CONTEXT:register(COMMON.CONTEXT.NAMES.SHOP, self)
+end
+function Script:final()
+	COMMON.CONTEXT:unregister(COMMON.CONTEXT.NAMES.SHOP)
+end
+
+COMMON.N28S.register(Script())

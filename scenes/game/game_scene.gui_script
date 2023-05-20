@@ -1,0 +1,533 @@
+local COMMON = require "libs.common"
+local ACTIONS = require "libs.actions.actions"
+local WORLD = require "world.world"
+local GUI = require "libs_project.gui.gui"
+local SM = require "libs_project.sm"
+local TWEEN = require "libs.tween"
+local DEFS = require "world.balance.def.defs"
+local BaseGuiScript = require "libs_project.scripts.base_gui_script"
+
+local COLOR_MUL_BASE = vmath.vector4(COMMON.LUME.color_parse_hex("#ffff00"))
+local COLOR_MUL_BUFF = vmath.vector4(COMMON.LUME.color_parse_hex("#00ff00"))
+
+local COLOR_WHITE = vmath.vector4(1, 1, 1, 1)
+local COLOR_EMPTY = vmath.vector4(1, 1, 1, 0)
+
+local SCALE_NUMBER = vmath.vector3(0.5)
+
+local CounterLabel = GUI.CounterLabel
+
+local PowerupView = COMMON.class("PowerupView")
+
+function PowerupView:initialize()
+	self.nodes = gui.clone_tree(gui.get_node("powerup_gui/root"))
+	self.vh = {
+		root = assert(self.nodes["powerup_gui/root"]),
+		icon = assert(self.nodes["powerup_gui/icon"])
+	}
+	self.views = {
+		progressbar = GUI.ProgressBar({
+			root = assert(self.nodes["powerup_gui/progress/root"]),
+			bg = assert(self.nodes["powerup_gui/progress/bg"]),
+			progress = assert(self.nodes["powerup_gui/progress/progress"]),
+			lbl = assert(self.nodes["powerup_gui/progress/progress_lbl"]),
+		})
+	}
+	self.views.progressbar.lbl_format_value = function(self)
+		return COMMON.LUME.round(math.max(0, self.animation.value))
+	end
+	gui.set_enabled(self.vh.root, true)
+	gui.set_color(self.vh.root, vmath.vector4(1, 1, 1, 0))
+	self.actions = ACTIONS.Parallel()
+	self.actions.drop_empty = false
+	self.actions:add_action(ACTIONS.TweenGui { object = self.vh.root, property = "color", v4 = true,
+											   from = vmath.vector4(1, 1, 1, 0), to = COLOR_WHITE,
+											   time = 0.5, easing = TWEEN.easing.outCubic })
+end
+
+function PowerupView:update(dt)
+	self.actions:update(dt)
+	self.views.progressbar:update(dt)
+end
+
+function PowerupView:set_powerup_id(id)
+	self.powerup_id = id
+	gui.play_flipbook(self.vh.icon, DEFS.POWERUPS[self.powerup_id].icon)
+end
+
+function PowerupView:set_max_duration(duration)
+	self.views.progressbar:set_value_max(duration)
+end
+
+function PowerupView:set_duration(duration, forced)
+	self.views.progressbar:set_value(self.hiden and 0 or duration, forced)
+end
+
+function PowerupView:hide()
+	if (not self.hiden) then
+		self.hiden = true
+		self.actions:add_action(ACTIONS.TweenGui { object = self.vh.root, property = "color", v4 = true,
+												   from = COLOR_WHITE, to = vmath.vector4(1, 1, 1, 0),
+												   time = 0.5, easing = TWEEN.easing.outCubic })
+		self.actions:add_action(function()
+			COMMON.coroutine_wait(0.5)
+			self:dispose()
+		end)
+	end
+end
+
+function PowerupView:set_line(line, forced)
+	if (self.line ~= line) then
+		local y = 22 + (line - 1) * 85
+		local action = ACTIONS.TweenGui { object = self.vh.root, property = "position", v3 = true,
+										  to = vmath.vector3(10, y, 0),
+										  time = 0.5, easing = TWEEN.easing.outCubic }
+		if (forced) then
+			while (action:is_running()) do
+				action:update(1)
+			end
+		else
+			self.actions:add_action(action)
+		end
+	end
+	self.line = line
+end
+
+function PowerupView:dispose()
+	gui.delete_node(self.vh.root)
+	self.vh = nil
+end
+
+local TEMP_V = vmath.vector3()
+
+---@class GameSceneGuiScript:GuiScriptBase
+local Script = COMMON.class("GameSceneGuiScript", BaseGuiScript)
+
+function Script:init()
+	BaseGuiScript.init(self, { context_name = COMMON.CONTEXT.NAMES.GAME_GUI })
+	self.actions = ACTIONS.Parallel()
+	self.actions.drop_empty = false
+	self.show_start_timer = true
+	self.animation_game_gui = ACTIONS.Sequence()
+	self.animation_game_gui.drop_empty = false
+	self.animation_start_time = ACTIONS.Sequence()
+	self.animation_start_time.drop_empty = false
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.WINDOW_RESIZED):go_distinct(self.scheduler):subscribe(function()
+		self:on_resize()
+	end))
+	self:on_resize()
+end
+
+function Script:bind_vh()
+	self.vh = {
+		top_right_game_gui = {
+			show = false,
+			root = gui.get_node("top_right_game_gui"),
+			cell_score = {
+				root = gui.get_node("cell_score/root"),
+				bg_border = gui.get_node("cell_score/bg_border"),
+				bg = gui.get_node("cell_score/bg"),
+				lbl = {
+					gui.get_node("cell_score/lbl_1"),
+					gui.get_node("cell_score/lbl_2"),
+					gui.get_node("cell_score/lbl_3"),
+					gui.get_node("cell_score/lbl_4"),
+					gui.get_node("cell_score/lbl_5"),
+					gui.get_node("cell_score/lbl_6"),
+					gui.get_node("cell_score/lbl_7"),
+					gui.get_node("cell_score/lbl_8"),
+				}
+			},
+			cell_gems = {
+				root = gui.get_node("cell_gems/root"),
+				bg_border = gui.get_node("cell_gems/bg_border"),
+				bg = gui.get_node("cell_gems/bg"),
+				lbl = {
+					gui.get_node("cell_gems/lbl_1"),
+					gui.get_node("cell_gems/lbl_2"),
+					gui.get_node("cell_gems/lbl_3"),
+					gui.get_node("cell_gems/lbl_4"),
+				}
+			},
+			cell_score_mul = {
+				root = gui.get_node("cell_score_mul/root"),
+				bg = gui.get_node("cell_score_mul/bg"),
+				bg_border = gui.get_node("cell_score_mul/bg_border"),
+				lbl = {
+					mul = gui.get_node("cell_score_mul/lbl_mul"),
+					gui.get_node("cell_score_mul/lbl_1"),
+					gui.get_node("cell_score_mul/lbl_2"),
+					gui.get_node("cell_score_mul/lbl_3"),
+					gui.get_node("cell_score_mul/lbl_4"),
+				}
+			}
+		},
+		bottom_left = gui.get_node("bottom_left"),
+		bottom_right = gui.get_node("bottom_right"),
+		powerup_gui_root = gui.get_node("powerup_gui/root"),
+
+		start_timer_root = gui.get_node("start_timer_root"),
+		start_timer_lbl_1 = gui.get_node("start_timer_lbl_1"),
+		start_timer_lbl_2 = gui.get_node("start_timer_lbl_2"),
+		start_timer_lbl_3 = gui.get_node("start_timer_lbl_3"),
+		tutorial_input = gui.get_node("tutorial_input"),
+		tutorial_start = gui.get_node("tutorial_start"),
+		tutorial_start_lbl1 = gui.get_node("tutorial_start/lbl1"),
+		tutorial_start_lbl1_ru = gui.get_node("tutorial_start/lbl1_ru"),
+		tutorial_start_lbl2 = gui.get_node("tutorial_start/lbl2"),
+		tutorial_start_lbl2_ru = gui.get_node("tutorial_start/lbl2_ru"),
+		tutorial_keys = {
+			key_a = gui.get_node("tutorial_input/key_a"),
+			key_d = gui.get_node("tutorial_input/key_d"),
+			key_arrow_left = gui.get_node("tutorial_input/key_arrow_left"),
+			key_arrow_right = gui.get_node("tutorial_input/key_arrow_right"),
+			key_touch_left = gui.get_node("tutorial_input/arrow/touch"),
+			key_touch_right = gui.get_node("tutorial_input/arrow2/touch"),
+		}
+	}
+
+	self.views = {
+		btn_pause = GUI.ButtonScale("btn_pause"),
+		powerups = {
+
+		},
+		lbl_score = CounterLabel({
+			labels = self.vh.top_right_game_gui.cell_score.lbl,
+			min_labels = 6
+		}),
+		lbl_gems = CounterLabel({
+			labels = self.vh.top_right_game_gui.cell_gems.lbl,
+			min_labels = 1
+		}),
+		lbl_score_mul = CounterLabel({
+			labels = self.vh.top_right_game_gui.cell_score_mul.lbl,
+			min_labels = 1
+		}),
+	}
+end
+
+function Script:show_pause()
+	if (not WORLD.game.state.lose and not SM:is_working() and SM:get_top()._name == SM.SCENES.GAME) then
+		WORLD.sdk:gameplay_stop()
+		WORLD.storage.game:gems_game_set(WORLD.game.state.gems)
+		SM:show(SM.MODALS.PAUSE)
+	end
+end
+
+function Script:init_gui()
+	BaseGuiScript.init_gui(self)
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.GAME)
+	self.views.btn_pause:set_input_listener(function()
+		self:show_pause()
+	end)
+	self.views.btn_pause.input_on_pressed = true
+	gui.set_color(self.vh.top_right_game_gui.root, COLOR_EMPTY)
+	gui.set_color(self.vh.bottom_left, COLOR_EMPTY)
+	gui.set_color(self.vh.bottom_right, COLOR_EMPTY)
+	gui.set_color(self.vh.tutorial_input, COLOR_EMPTY)
+	gui.set_color(self.vh.tutorial_start, COLOR_EMPTY)
+	gui.set_enabled(self.vh.powerup_gui_root, false)
+	gui.set_enabled(self.vh.start_timer_lbl_1, false)
+	gui.set_enabled(self.vh.start_timer_lbl_2, false)
+	gui.set_enabled(self.vh.start_timer_lbl_3, false)
+	gui.set_enabled(self.vh.tutorial_input, false)
+	gui.set_enabled(self.vh.tutorial_start, false)
+end
+
+function Script:update_score()
+	self.views.lbl_score:set_value(WORLD.game:score_get())
+	if (self.vh.top_right_game_gui.cell_score.count ~= self.views.lbl_score.count) then
+		self.vh.top_right_game_gui.cell_score.count = self.views.lbl_score.count
+		local panel_size = 40 + self.views.lbl_score.count * 20
+		TEMP_V.x, TEMP_V.y, TEMP_V.z = panel_size, 42, 0
+		gui.set_size(self.vh.top_right_game_gui.cell_score.bg_border, TEMP_V)
+
+		TEMP_V.x = TEMP_V.x - 2
+		TEMP_V.y = TEMP_V.y - 5
+		gui.set_size(self.vh.top_right_game_gui.cell_score.bg, TEMP_V)
+
+		TEMP_V.x = -(TEMP_V.x + 2)
+		TEMP_V.y = -35
+		gui.set_position(self.vh.top_right_game_gui.cell_score_mul.root, TEMP_V)
+	end
+
+end
+
+function Script:update_gems()
+	self.views.lbl_gems:set_value(WORLD.game.state.gems)
+	if (self.vh.top_right_game_gui.cell_gems.count ~= self.views.lbl_gems.count) then
+		self.vh.top_right_game_gui.cell_gems.count = self.views.lbl_gems.count
+		local panel_size = 88 + math.max(self.views.lbl_gems.count, 2) * 20
+		TEMP_V.x, TEMP_V.y, TEMP_V.z = panel_size, 42, 0
+		gui.set_size(self.vh.top_right_game_gui.cell_gems.bg_border, TEMP_V)
+		TEMP_V.x = TEMP_V.x - 2
+		TEMP_V.y = 37
+		gui.set_size(self.vh.top_right_game_gui.cell_gems.bg, TEMP_V)
+	end
+end
+
+function Script:update_score_mul()
+	local mul = WORLD.game:score_mul_get()
+	local buff = mul > WORLD.storage.game:stars_get()
+	self.views.lbl_score_mul:set_value(mul)
+	local color = buff and COLOR_MUL_BUFF or COLOR_MUL_BASE
+	if (self.views.lbl_score_mul.color ~= color) then
+		self.views.lbl_score_mul.color = color
+		for _, lbl in ipairs(self.views.lbl_score_mul.labels) do
+			gui.set_color(lbl.lbl, color)
+		end
+		gui.set_color(self.vh.top_right_game_gui.cell_score_mul.lbl.mul, color)
+	end
+
+	if (self.vh.top_right_game_gui.cell_score_mul.count ~= self.views.lbl_score_mul.count) then
+		self.vh.top_right_game_gui.cell_score_mul.count = self.views.lbl_score_mul.count
+		local panel_size = 25 + math.max(self.views.lbl_score_mul.count, 1) * 18
+		TEMP_V.x, TEMP_V.y, TEMP_V.z = panel_size, 42, 0
+		gui.set_size(self.vh.top_right_game_gui.cell_score_mul.bg_border, TEMP_V)
+
+		TEMP_V.x = TEMP_V.x - 4
+		TEMP_V.y = 37
+		gui.set_size(self.vh.top_right_game_gui.cell_score_mul.bg, TEMP_V)
+
+		TEMP_V.x = -5 - self.views.lbl_score_mul.count * 18
+		TEMP_V.y = -3
+		gui.set_position(self.vh.top_right_game_gui.cell_score_mul.lbl.mul, TEMP_V)
+	end
+end
+
+function Script:animate_start_timer()
+	local action = ACTIONS.Parallel()
+	local action_1 = ACTIONS.Sequence()
+	action_1:add_action(function()
+		gui.set_color(self.vh.start_timer_lbl_3, COLOR_EMPTY)
+		gui.set_scale(self.vh.start_timer_lbl_3, SCALE_NUMBER)
+		gui.set_enabled(self.vh.start_timer_lbl_3, true)
+	end)
+	action_1:add_action(ACTIONS.TweenGui { object = self.vh.start_timer_lbl_3, property = "color", v4 = true,
+										   from = COLOR_EMPTY, to = COLOR_WHITE, time = 0.15,
+										   easing = TWEEN.easing.inQuad })
+	action_1:add_action(function()
+		COMMON.coroutine_wait(0.25)
+	end)
+	action_1:add_action(ACTIONS.TweenGui { object = self.vh.start_timer_lbl_3, property = "color", v4 = true,
+										   from = COLOR_WHITE, to = COLOR_EMPTY, time = 0.5,
+										   easing = TWEEN.easing.inQuad })
+	action_1:add_action(function()
+		gui.set_enabled(self.vh.start_timer_lbl_3, false)
+	end)
+
+	local action_2 = ACTIONS.Sequence()
+	action_2:add_action(function()
+		COMMON.coroutine_wait(0.9)
+		gui.set_color(self.vh.start_timer_lbl_2, COLOR_EMPTY)
+		gui.set_scale(self.vh.start_timer_lbl_2, SCALE_NUMBER)
+		gui.set_enabled(self.vh.start_timer_lbl_2, true)
+	end)
+	action_2:add_action(ACTIONS.TweenGui { object = self.vh.start_timer_lbl_2, property = "color", v4 = true,
+										   from = COLOR_EMPTY, to = COLOR_WHITE, time = 0.25,
+										   easing = TWEEN.easing.inQuad })
+	action_2:add_action(function()
+		COMMON.coroutine_wait(0.25)
+	end)
+	action_2:add_action(ACTIONS.TweenGui { object = self.vh.start_timer_lbl_2, property = "color", v4 = true,
+										   from = COLOR_WHITE, to = COLOR_EMPTY, time = 0.5,
+										   easing = TWEEN.easing.inQuad })
+	action_2:add_action(function()
+		gui.set_enabled(self.vh.start_timer_lbl_3, false)
+	end)
+
+	local action_3 = ACTIONS.Sequence()
+	action_3:add_action(function()
+		COMMON.coroutine_wait(1.9)
+		gui.set_color(self.vh.start_timer_lbl_1, COLOR_EMPTY)
+		gui.set_scale(self.vh.start_timer_lbl_1, SCALE_NUMBER)
+		gui.set_enabled(self.vh.start_timer_lbl_1, true)
+
+	end)
+	action_3:add_action(ACTIONS.TweenGui { object = self.vh.start_timer_lbl_1, property = "color", v4 = true,
+										   from = COLOR_EMPTY, to = COLOR_WHITE, time = 0.25,
+										   easing = TWEEN.easing.inQuad })
+	action_3:add_action(function()
+		COMMON.coroutine_wait(0.35)
+	end)
+	action_3:add_action(ACTIONS.TweenGui { object = self.vh.start_timer_lbl_1, property = "color", v4 = true,
+										   from = COLOR_WHITE, to = COLOR_EMPTY, time = 0.5,
+										   easing = TWEEN.easing.inQuad })
+	action_3:add_action(function()
+		gui.set_enabled(self.vh.start_timer_lbl_1, false)
+	end)
+
+	action:add_action(action_1)
+	action:add_action(action_2)
+	action:add_action(action_3)
+	self.animation_start_time:add_action(action)
+end
+
+function Script:update(dt)
+	self.animation_game_gui:update(dt)
+	self.animation_start_time:update(dt)
+	self:update_score()
+	self:update_gems()
+	self:update_score_mul()
+
+	local show_start_timer = WORLD.game.state.start_timer > 0
+	if (self.show_start_timer ~= show_start_timer) then
+		self.show_start_timer = show_start_timer
+		gui.set_enabled(self.vh.start_timer_root, self.show_start_timer)
+		while (not self.animation_start_time:is_empty()) do self.animation_start_time:update(1) end
+		if (self.show_start_timer) then self:animate_start_timer() end
+	end
+	self:update_powerups(dt)
+end
+
+function Script:update_powerups(dt)
+	for view_idx = #self.views.powerups, 1, -1 do
+		local view = self.views.powerups[view_idx]
+		view:set_duration(WORLD.game.state.powerups[view.powerup_id].duration)
+		view:update(dt)
+		view:set_line(view_idx)
+		if (view.vh == nil) then
+			table.remove(self.views.powerups, view_idx)
+		end
+	end
+end
+
+function Script:powerups_hide()
+	for _, view in ipairs(self.views.powerups) do
+		view:hide()
+	end
+end
+
+function Script:game_gui_show(show)
+	if (self.vh.top_right_game_gui.show ~= show) then
+		self.vh.top_right_game_gui.show = show
+		-- FIXED btn need double click to work after we open scene
+		self.views.btn_pause.pressed_now_handled = false
+		self.views.btn_pause:on_input(nil)
+		while (not self.animation_game_gui:is_empty()) do self.animation_game_gui:update(1) end
+		if (show) then
+			local action = ACTIONS.Parallel()
+			action:add_action(ACTIONS.TweenGui { object = self.vh.top_right_game_gui.root, property = "color", v4 = true,
+												 from = COLOR_EMPTY, to = COLOR_WHITE,
+												 time = 0.5, easing = TWEEN.easing.outCubic })
+			action:add_action(ACTIONS.TweenGui { object = self.vh.bottom_left, property = "color", v4 = true,
+												 from = COLOR_EMPTY, to = COLOR_WHITE,
+												 time = 0.5, easing = TWEEN.easing.outCubic })
+			action:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+												 from = COLOR_EMPTY, to = COLOR_WHITE,
+												 time = 0.5, easing = TWEEN.easing.outCubic })
+			self.animation_game_gui:add_action(action)
+			self.vh.top_right_game_gui.cell_score_mul.count = 0
+			self.vh.top_right_game_gui.cell_score.count = 0
+			self.vh.top_right_game_gui.cell_gems.count = 0
+		else
+			local action = ACTIONS.Parallel()
+			action:add_action(ACTIONS.TweenGui { object = self.vh.top_right_game_gui.root, property = "color", v4 = true,
+												 from = COLOR_WHITE, to = COLOR_EMPTY,
+												 time = 0.5, easing = TWEEN.easing.outCubic })
+			action:add_action(ACTIONS.TweenGui { object = self.vh.bottom_left, property = "color", v4 = true,
+												 from = COLOR_WHITE, to = COLOR_EMPTY,
+												 time = 0.5, easing = TWEEN.easing.outCubic })
+			action:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+												 from = COLOR_WHITE, to = COLOR_EMPTY,
+												 time = 0.5, easing = TWEEN.easing.outCubic })
+			self.animation_game_gui:add_action(action)
+			for _, view in ipairs(self.views.powerups) do
+				view:hide()
+			end
+		end
+	end
+end
+
+function Script:powerup_take(powerup_id, duration)
+	local view = nil
+	for view_idx, powerup_view in ipairs(self.views.powerups) do
+		if (powerup_view.powerup_id == powerup_id and not powerup_view.hiden) then
+			view = powerup_view
+			break
+		end
+	end
+	if (not view) then
+		view = PowerupView()
+		table.insert(self.views.powerups, view)
+		view:set_line(#self.views.powerups)
+	end
+	view:set_powerup_id(powerup_id)
+	view:set_max_duration(duration)
+	view:set_duration(duration, true)
+end
+
+function Script:powerup_finish(powerup_id)
+	for idx, powerup_view in ipairs(self.views.powerups) do
+		if (powerup_view.powerup_id == powerup_id) then
+			powerup_view:hide()
+		end
+	end
+end
+
+function Script:on_input(action_id, action)
+	if (self.vh.top_right_game_gui.show) then
+		if (self.views.btn_pause:on_input(action_id, action)) then return true end
+		if(action_id == COMMON.HASHES.INPUT.ESCAPE and action.pressed)then
+			self:show_pause()
+		end
+	end
+end
+
+function Script:tutorial_begin()
+	gui.set_enabled(self.vh.tutorial_start, true)
+	gui.set_color(self.vh.tutorial_start, COLOR_WHITE)
+
+	gui.set_enabled(self.vh.tutorial_input, true)
+	gui.set_color(self.vh.tutorial_input, COLOR_WHITE)
+
+	local is_ru = COMMON.LOCALIZATION:locale_get() == "ru"
+	gui.set_enabled(self.vh.tutorial_start_lbl1, not is_ru)
+	gui.set_enabled(self.vh.tutorial_start_lbl2, not is_ru)
+	gui.set_enabled(self.vh.tutorial_start_lbl1_ru, is_ru)
+	gui.set_enabled(self.vh.tutorial_start_lbl2_ru, is_ru)
+
+	local mobile = COMMON.CONSTANTS.PLATFORM_IS_MOBILE or COMMON.html5_is_mobile()
+	gui.set_enabled(self.vh.tutorial_keys.key_a, not mobile)
+	gui.set_enabled(self.vh.tutorial_keys.key_d, not mobile)
+	gui.set_enabled(self.vh.tutorial_keys.key_arrow_left, not mobile)
+	gui.set_enabled(self.vh.tutorial_keys.key_arrow_right, not mobile)
+	gui.set_enabled(self.vh.tutorial_keys.key_touch_left, mobile)
+	gui.set_enabled(self.vh.tutorial_keys.key_touch_right, mobile)
+end
+
+function Script:tutorial_start_run()
+	self.animation_game_gui:add_action(ACTIONS.TweenGui { object = self.vh.tutorial_start, property = "color", v4 = true,
+														  from = COLOR_WHITE, to = COLOR_EMPTY,
+														  time = 0.5, easing = TWEEN.easing.outCubic })
+	self.animation_game_gui:add_action(function()
+		gui.set_enabled(self.vh.tutorial_start, false)
+	end)
+end
+
+function Script:tutorial_hide_input()
+	self.animation_game_gui:add_action(ACTIONS.TweenGui { object = self.vh.tutorial_input, property = "color", v4 = true,
+														  from = COLOR_WHITE, to = COLOR_EMPTY,
+														  time = 0.5, easing = TWEEN.easing.outCubic })
+	self.animation_game_gui:add_action(function()
+		gui.set_enabled(self.vh.tutorial_input, false)
+	end)
+end
+
+function Script:on_resize()
+	local insets, status = safearea.get_insets()
+	if (status == safearea.STATUS_OK) then
+		local d_left = 960 * insets.left / COMMON.RENDER.screen_size.w
+		local d_right = 960 * insets.right / COMMON.RENDER.screen_size.w
+
+		gui.set_position(self.vh.bottom_left, vmath.vector3(d_left, 0, 0))
+		gui.set_position(self.vh.bottom_right, vmath.vector3(960 - d_right, 0, 0))
+		gui.set_position(self.vh.top_right_game_gui.root, vmath.vector3(960 - d_right, 540, 0))
+	elseif (status == safearea.STATUS_NOT_READY_YET) then
+		timer.delay(0.5, false, function()
+			self:on_resize()
+		end)
+	end
+end
+
+COMMON.N28S.register_scripts({ Script() })

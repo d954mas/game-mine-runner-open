@@ -1,0 +1,104 @@
+local COMMON = require "libs.common"
+local ACTIONS = require "libs.actions.actions"
+local TWEEN = require "libs.tween"
+local GUI = require "libs_project.gui.gui"
+local WORLD = require "world.world"
+local SM = require "libs_project.sm"
+local BaseGuiScript = require "libs_project.scripts.base_gui_script"
+
+local COLOR_INVISIBLE = vmath.vector4(1, 1, 1, 0)
+local COLOR_WHITE = vmath.vector4(1)
+
+---@class RewardSceneGuiScript:ScriptMain
+local Script = COMMON.class("RewardSceneGuiScript", BaseGuiScript)
+
+function Script:init()
+	BaseGuiScript.init(self, { context_name = COMMON.CONTEXT.NAMES.REWARD_GUI })
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.MODAL)
+	self.animation_action = ACTIONS.Sequence()
+	self.animation_action.drop_empty = false
+end
+
+function Script:bind_vh()
+	self.vh = {
+		fader = gui.get_node("fader"),
+		bottom = gui.get_node("bottom"),
+		reward_gem = {
+			root = gui.get_node("reward_gem"),
+			icon = gui.get_node("reward_gem/icon"),
+			lbl = gui.get_node("reward_gem/lbl")
+		},
+		btn_collect_title = gui.get_node("btn_collect/lbl")
+	}
+	self.views = {
+		btn_collect = GUI.ButtonScale("btn_collect")
+	}
+end
+
+function Script:init_gui()
+	BaseGuiScript.init_gui(self)
+
+	gui.set_text(self.vh.btn_collect_title, COMMON.LOCALIZATION.tasks_reward_btn_collect())
+
+	self.fader_color = gui.get_color(self.vh.fader)
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0
+	gui.set_color(self.vh.fader, start_color)
+
+	self.views.btn_collect:set_input_listener(function()
+		WORLD.storage.game:gems_daily_collect()
+		SM:close_modals()
+	end)
+
+end
+
+function Script:animate_hide()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.fader, property = "color", v4 = true,
+												to = start_color, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.reward_gem.root, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic })
+	self.animation_action:add_action(show_parallel)
+
+
+end
+
+function Script:animate_show(input)
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+
+	gui.set_text(self.vh.reward_gem.lbl, input.gems)
+	GUI.set_nodes_to_center(self.vh.reward_gem.lbl, true, self.vh.reward_gem.icon,
+			false, 10)
+
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0.3
+	gui.set_color(self.vh.fader, start_color)
+	gui.set_color(self.vh.bottom, COLOR_INVISIBLE)
+	gui.set_color(self.vh.reward_gem.root, COLOR_INVISIBLE)
+
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.fader, property = "color", v4 = true,
+												to = self.fader_color, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.reward_gem.root, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.outCubic })
+	self.animation_action:add_action(show_parallel)
+end
+function Script:update(dt)
+	BaseGuiScript.update(self, dt)
+	self.animation_action:update(dt)
+end
+
+function Script:on_input(action_id, action)
+	if (self.views.btn_collect:on_input(action_id, action)) then return true end
+end
+
+COMMON.N28S.register_scripts({ Script() })

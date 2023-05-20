@@ -1,0 +1,34 @@
+local COMMON = require "libs.common"
+local WORLD = require "world.world"
+local DEBUG_INFO = require "debug.debug_info"
+
+local COLORS = {
+	GOOD = COMMON.LUME.color_parse_hex("#00ff00"),
+	WARNING = COMMON.LUME.color_parse_hex("#ffff00"),
+	BAD = COMMON.LUME.color_parse_hex("#ff0000")
+}
+
+local Script = COMMON.new_n28s()
+
+function Script:init()
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.DEBUG)
+	self.vh = {
+		root = gui.get_node("root"),
+		lbl_entities = gui.get_node("lbl_entities"),
+		lbl_tunnel_name  = gui.get_node("lbl_tunnel_name"),
+	}
+	self.enabled = WORLD.storage.debug:draw_debug_info_is()
+	gui.set_enabled(self.vh.root, self.enabled)
+end
+
+function Script:update(dt)
+	if (self.enabled ~= WORLD.storage.debug:draw_debug_info_is()) then
+		self.enabled = WORLD.storage.debug:draw_debug_info_is()
+		gui.set_enabled(self.vh.root, self.enabled)
+	end
+	gui.set_text(self.vh.lbl_entities, DEBUG_INFO.game_entities)
+	local tunnel = WORLD.game:get_tunnel_by_distance(WORLD.game.level_creator.player.tunnel_movement.distance)
+	gui.set_text(self.vh.lbl_tunnel_name, tunnel.level_name)
+end
+
+COMMON.N28S.register(Script())

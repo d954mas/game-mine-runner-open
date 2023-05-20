@@ -1,0 +1,66 @@
+name: "default"
+scale_along_z: 0
+embedded_instances {
+  id: "root"
+  children: "mesh"
+  data: ""
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
+embedded_instances {
+  id: "mesh"
+  data: "embedded_components {\n"
+  "  id: \"mesh\"\n"
+  "  type: \"model\"\n"
+  "  data: \"mesh: \\\"/assets/models/box_same.dae\\\"\\n"
+  "material: \\\"/assets/materials/box_material.material\\\"\\n"
+  "textures: \\\"/assets/textures/rgb/mip/metal_box.png\\\"\\n"
+  "skeleton: \\\"\\\"\\n"
+  "animations: \\\"\\\"\\n"
+  "default_animation: \\\"\\\"\\n"
+  "name: \\\"unnamed\\\"\\n"
+  "\"\n"
+  "  position {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "}\n"
+  ""
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.5
+    y: 1.5
+    z: 1.5
+  }
+}

@@ -1,0 +1,37 @@
+local COMMON = require "libs.common"
+
+---@class GameFaderGuiScript:GuiScriptBase
+local Script = COMMON.new_n28s()
+
+function Script:init()
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.FADER)
+	self.fader = gui.get_node("fader")
+	COMMON.CONTEXT:register(COMMON.CONTEXT.NAMES.FADER, self)
+	self.fader_color = gui.get_color(self.fader)
+	self.fader_start_color = vmath.vector4(self.fader_color)
+	self.fader_start_color.w = 0
+
+	self.fader_full_color = vmath.vector4(self.fader_color)
+	self.fader_full_color.w = 1
+
+end
+
+function Script:final()
+	COMMON.CONTEXT:unregister(COMMON.CONTEXT.NAMES.FADER)
+end
+
+function Script:show()
+	gui.animate(self.fader, "color", self.fader_color, gui.EASING_OUTCUBIC, 0.3)
+end
+
+function Script:hide()
+	gui.animate(self.fader, "color", self.fader_start_color, gui.EASING_OUTCUBIC, 0.5)
+end
+
+function Script:reload_game()
+	gui.animate(self.fader, "color", self.fader_full_color, gui.EASING_OUTCUBIC, 0.3,0.7,function()
+		gui.animate(self.fader, "color", self.fader_start_color, gui.EASING_OUTCUBIC, 0.3,0.1)
+	end)
+end
+
+COMMON.N28S.register_scripts({ Script() })

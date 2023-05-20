@@ -1,0 +1,159 @@
+[project]
+title = Mine Runner Open
+version = 1.0.3
+custom_resources = 
+bundle_exclude_resources = 
+bundle_resources = assets/bundle
+dependencies#0 = https://github.com/DanEngelbrecht/LuaScriptInstance/archive/master.zip
+dependencies#1 = https://github.com/defold/extension-safearea/archive/refs/tags/1.3.1.zip
+dependencies#2 = https://github.com/d954mas/defold-utf8/archive/master.zip
+
+[bootstrap]
+main_collection = /init.collectionc
+render = /render/my.renderc
+
+[input]
+game_binding = /game.input_bindingc
+use_accelerometer = 0
+
+[display]
+width = 960
+height = 540
+high_dpi = 1
+fullscreen = 0
+display_profiles = /builtins/render/default.display_profilesc
+dynamic_orientation = 0
+
+[physics]
+type = 3D
+debug = 0
+max_collisions = 0
+max_contacts = 0
+ray_cast_limit_3d = 0
+trigger_overlap_capacity = 0
+use_fixed_timestep = 0
+gravity_y = -15.0
+max_collision_object_count = 0
+ray_cast_limit_2d = 0
+
+[script]
+shared_state = 1
+
+[library]
+include_dirs = 
+
+[native_extension]
+app_manifest = /app_manifest_debug.appmanifest
+
+[android]
+gcm_sender_id = 
+push_field_text = 
+manifest = /platform/android/AndroidManifest.xml
+package = com.d954mas.game.minerunner3d
+proguard = 
+minimum_sdk_version = 19
+immersive_mode = 1
+version_code = 19
+
+[graphics]
+texture_profiles = /render/my.texture_profiles
+default_texture_min_filter = linear
+default_texture_mag_filter = linear
+verify_graphics_calls = 0
+max_draw_calls = 10000
+
+[sound]
+max_sound_buffers = 16
+max_component_count = 16
+max_sound_data = 32
+max_sound_sources = 16
+max_sound_instances = 16
+
+[sprite]
+max_count = 512
+subpixels = 1
+
+[resource]
+max_resources = 1024
+
+[factory]
+max_count = 32
+
+[spine]
+max_count = 0
+
+[profiler]
+track_cpu = 1
+
+[windows]
+iap_provider = 
+
+[html5]
+archive_location_prefix = archive
+htmlfile = /platform/web/engine_template.html
+show_fullscreen_button = 1
+show_made_with_defold = 0
+scale_mode = no_scale
+cssfile = /platform/web/dark_theme.css
+heap_size = 64
+splash_image = 
+wasm_streaming = 0
+
+[model]
+max_count = 512
+
+[particle_fx]
+max_particle_count = 0
+max_count = 0
+max_emitter_count = 0
+
+[gui]
+max_count = 8
+max_particlefx_count = 0
+max_particle_count = 0
+
+[label]
+max_count = 0
+
+[collectionfactory]
+max_count = 32
+
+[tilemap]
+max_count = 0
+max_tile_count = 0
+
+[googleanalytics]
+dispatch_period = 30
+queue_save_period = 60000000
+verbose = 0
+
+[collection_proxy]
+max_count = 5
+
+[engine]
+run_while_iconified = 0
+
+[ios]
+bundle_identifier = com.d954mas.game.canon
+
+[mesh]
+max_count = 128
+
+[game]
+version = dev
+target = editor
+
+[localization]
+default = en
+use_system = true
+
+[collection]
+max_instances = 20480
+max_input_stack_entries = 8
+
+[shader]
+output_spirv = 1
+
+[admob]
+app_id_android = ca-app-pub-8047641499945529~8256626945
+

@@ -1,0 +1,7 @@
+mesh: "/assets/models/powerup_x2.dae"
+material: "/assets/materials/powerup.material"
+textures: "/assets/textures/rgb/pallete.png"
+skeleton: ""
+animations: ""
+default_animation: ""
+name: "unnamed"

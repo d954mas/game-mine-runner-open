@@ -1,0 +1,9 @@
+[project]
+title = Mine Runner Dev
+
+[android]
+package = com.d954mas.game.minerunner3d.dev
+
+
+[game]
+version = dev

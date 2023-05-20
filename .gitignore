@@ -1,0 +1,13 @@
+# Created by .ignore support plugin (hsz.mobi)
+/.internal
+/build
+/bob/releases/*
+/bob/keystore/release.jks
+/bob/keystore/release_password.txt
+/bob/bob.jar
+/storage.json
+/lua_lint_result.txt
+/bob/bob_old.jar
+/.idea
+*.blend
+*.blend1

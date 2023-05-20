@@ -1,0 +1,48 @@
+name: "COLLECTION_NAME"
+scale_along_z: 0
+
+instances {
+    id: "vagon"
+    prototype: "/vagon_scene/gameobjects/vagon.go"
+
+    position {
+        x:0
+	y:0
+	z:0
+    }
+    rotation {
+        x:0.70710682868958
+	y:0
+	z:0
+	w:0.70710670948029
+    }
+    scale3 {
+        x:1
+	y:1
+	z:1
+    }
+}
+
+embedded_instances {
+    id: "__root"
+	children: "vagon"
+
+    data: ""
+    position {
+        x: 0.0
+        y: 0.0
+        z: 0.0
+    }
+    rotation {
+        x: -0.70710677
+        y: 0.0
+        z: 0.0
+        w: 0.70710677
+    }
+
+    scale3 {
+        x: 1.0
+        y: 1.0
+        z: 1.0
+    }
+}

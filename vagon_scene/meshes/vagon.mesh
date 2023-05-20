@@ -1,0 +1,6 @@
+material: "/assets/materials/vagon_material.material"
+vertices: "/vagon_scene/meshes/vagon.buffer"
+textures: "/assets/textures/rgb/vagon.png"
+primitive_type: PRIMITIVE_TRIANGLES
+position_stream: "position"
+normal_stream: "normal"

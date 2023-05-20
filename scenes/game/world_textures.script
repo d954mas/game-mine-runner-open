@@ -1,0 +1,5 @@
+go.property("mine_world", resource.texture("/assets/textures/rgb/mip/mine_world.png"))
+go.property("dark_world", resource.texture("/assets/textures/rgb/mip/dark_world.png"))
+go.property("metal_world", resource.texture("/assets/textures/rgb/mip/metal_world.png"))
+go.property("toon_world", resource.texture("/assets/textures/rgb/mip/toon_world.png"))
+go.property("grass_world", resource.texture("/assets/textures/rgb/mip/grass_world.png"))

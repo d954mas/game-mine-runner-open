@@ -1,0 +1,219 @@
+local COMMON = require "libs.common"
+local GUI = require "libs_project.gui.gui"
+local ACTIONS = require "libs.actions.actions"
+local SM = require "libs_project.sm"
+local TWEEN = require "libs.tween"
+local BaseGuiScript = require "libs_project.scripts.base_gui_script"
+local WORLD = require "world.world"
+local TabSkins = require "scenes.shop.tabs.tab_shop_skins"
+local TabUpgrades = require "scenes.shop.tabs.tab_shop_upgrades"
+
+local COLOR_WHITE = vmath.vector4(1)
+local COLOR_EMPTY = vmath.vector4(1, 1, 1, 0)
+
+local TABS_COLORS = {
+	ACTIVE = {
+		root = COMMON.LUME.color_parse_hex("#b5fffa"),
+		bg = COMMON.LUME.color_parse_hex("#6DC6F9")
+	},
+	UNACTIVE = {
+		root = COMMON.LUME.color_parse_hex("#666666"),
+		bg = COMMON.LUME.color_parse_hex("#8E8E8E")
+	}
+}
+
+---@class ShopSceneGuiScript:ScriptMain
+local Script = COMMON.class("LoseSceneGuiScript", BaseGuiScript)
+
+function Script:init()
+	BaseGuiScript.init(self, { context_name = COMMON.CONTEXT.NAMES.SHOP_GUI })
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.MODAL)
+	--WORLD.sounds:play_sound(WORLD.sounds.sounds.lose)
+	self.animation_action = ACTIONS.Sequence()
+	self.animation_action.drop_empty = false
+	---@type GameTabBase
+	self.selected_tab = nil
+	self.tabs = {
+		skins = TabSkins("tab_skins"),
+		upgrades = TabUpgrades("tab_upgrades"),
+	}
+	for _, tab in pairs(self.tabs) do
+		tab:set_enabled(false)
+	end
+	self:select_tab(self.tabs.skins)
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.WINDOW_RESIZED):go_distinct(self.scheduler):subscribe(function ()
+		self:on_resize()
+	end))
+	self:on_resize()
+end
+
+function Script:select_tab(tab)
+	if (self.selected_tab == tab) then return end
+	if (self.selected_tab) then
+		self.selected_tab:set_enabled(false)
+	end
+	self.selected_tab = assert(tab)
+	self.selected_tab:set_enabled(true)
+
+	if (tab == self.tabs.skins) then
+		gui.set_color(self.vh.tabs.skins.root, TABS_COLORS.ACTIVE.root)
+		gui.set_color(self.vh.tabs.skins.bg, TABS_COLORS.ACTIVE.bg)
+		gui.set_color(self.vh.tabs.upgrades.root, TABS_COLORS.UNACTIVE.root)
+		gui.set_color(self.vh.tabs.upgrades.bg, TABS_COLORS.UNACTIVE.bg)
+	else
+		gui.set_color(self.vh.tabs.upgrades.root, TABS_COLORS.ACTIVE.root)
+		gui.set_color(self.vh.tabs.upgrades.bg, TABS_COLORS.ACTIVE.bg)
+		gui.set_color(self.vh.tabs.skins.root, TABS_COLORS.UNACTIVE.root)
+		gui.set_color(self.vh.tabs.skins.bg, TABS_COLORS.UNACTIVE.bg)
+	end
+end
+
+function Script:bind_vh()
+	self.vh = {
+		fader = gui.get_node("fader"),
+		right = gui.get_node("right"),
+		bottom_right = gui.get_node("bottom_right"),
+		left = gui.get_node("left"),
+		offer_gem_fly_point = gui.get_node("offer/gem_fly_point"),
+		tabs = {
+			skins = {
+				root = gui.get_node("tab_skins_tab/root"),
+				bg = gui.get_node("tab_skins_tab/bg")
+			},
+			upgrades = {
+				root = gui.get_node("tab_upgrades_tab/root"),
+				bg = gui.get_node("tab_upgrades_tab/bg")
+			}
+		},
+		lbl_offer = gui.get_node("offer/lbl_gems"),
+		lbl_offer_btn = gui.get_node("offer/btn/lbl"),
+		lbl_offer_title = gui.get_node("offer/title")
+	}
+	self.views = {
+		btn_menu = GUI.ButtonScale("btn_menu"),
+		btn_tab_skins = GUI.ButtonScale("tab_skins_tab"),
+		btn_tab_upgrades = GUI.ButtonScale("tab_upgrades_tab"),
+		btn_offer = GUI.ButtonScale("offer/btn"),
+	}
+end
+
+function Script:on_storage_changed()
+	gui.set_text(self.vh.lbl_offer, WORLD.storage.game:shop_offer_get_reward())
+end
+
+function Script:init_gui()
+	BaseGuiScript.init_gui(self)
+	gui.set_text(self.vh.lbl_offer_title, COMMON.LOCALIZATION.offer_title())
+	gui.set_text(self.vh.lbl_offer_btn, COMMON.LOCALIZATION.offer_btn_text())
+
+	self.fader_color = gui.get_color(self.vh.fader)
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0
+	gui.set_color(self.vh.fader, start_color)
+
+	self.views.btn_menu:set_input_listener(function()
+		--WORLD.sdk:ads_commercial(function()
+			SM:close_modals()
+		--end)
+	end)
+
+	self.views.btn_offer:set_input_listener(function()
+		WORLD.sdk:ads_rewarded(function(success)
+			if (success) then
+				WORLD.storage.game:shop_offer_success()
+			end
+		end)
+
+	end)
+
+	self.views.btn_tab_upgrades.scale = 0.98
+	self.views.btn_tab_upgrades.input_on_pressed = true
+	self.views.btn_tab_upgrades:set_input_listener(function()
+		self:select_tab(self.tabs.upgrades)
+	end)
+
+	self.views.btn_tab_skins.scale = 0.98
+	self.views.btn_tab_skins.input_on_pressed = true
+	self.views.btn_tab_skins:set_input_listener(function()
+		self:select_tab(self.tabs.skins)
+	end)
+end
+
+function Script:animate_hide()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.fader, property = "color", v4 = true,
+												to = start_color, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.left, property = "color", v4 = true,
+												from = COLOR_WHITE, to = COLOR_EMPTY, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.right, property = "color", v4 = true,
+												from = COLOR_WHITE, to = COLOR_EMPTY, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+												from = COLOR_WHITE, to = COLOR_EMPTY, time = 0.5, easing = TWEEN.easing.outCubic })
+
+	self.animation_action:add_action(show_parallel)
+
+
+end
+
+function Script:animate_show()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+
+	local start_color = vmath.vector4(self.fader_color)
+	start_color.w = 0.3
+	gui.set_color(self.vh.fader, start_color)
+	gui.set_color(self.vh.left, COLOR_EMPTY)
+	gui.set_color(self.vh.right, COLOR_EMPTY)
+	gui.set_color(self.vh.bottom_right, COLOR_EMPTY)
+
+	self.tabs.skins:set_alpha(0)
+
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.fader, property = "color", v4 = true,
+												to = self.fader_color, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.left, property = "color", v4 = true,
+												from = COLOR_EMPTY, to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.right, property = "color", v4 = true,
+												from = COLOR_EMPTY, to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.outCubic })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+												from = COLOR_EMPTY, to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.outCubic })
+
+	self.animation_action:add_action(show_parallel)
+end
+function Script:update(dt)
+	BaseGuiScript.update(self, dt)
+	self.animation_action:update(dt)
+	self.selected_tab:update(dt)
+
+	local alpha = gui.get_color(self.vh.left)
+	self.tabs.skins:set_alpha(alpha.w)
+end
+
+function Script:on_input(action_id, action)
+	if (self.views.btn_menu:on_input(action_id, action)) then return true end
+	if (self.views.btn_tab_skins:on_input(action_id, action)) then return true end
+	if (self.views.btn_tab_upgrades:on_input(action_id, action)) then return true end
+	if (self.views.btn_offer:on_input(action_id, action)) then return true end
+	if self.selected_tab:on_input(action_id, action) then return true end
+end
+
+function Script:on_resize()
+	local insets, status = safearea.get_insets()
+	if (status == safearea.STATUS_OK) then
+		local d_left = 960 * insets.left / COMMON.RENDER.screen_size.w
+		local d_right = 960 * insets.right / COMMON.RENDER.screen_size.w
+		gui.set_position(self.vh.left, vmath.vector3(d_left, 270, 0))
+		gui.set_position(self.vh.right, vmath.vector3(960-d_right, 270, 0))
+		gui.set_position(self.vh.bottom_right, vmath.vector3(960-d_right, 0, 0))
+	elseif (status == safearea.STATUS_NOT_READY_YET) then
+		timer.delay(0.5, false, function()
+			self:on_resize()
+		end)
+	end
+end
+
+COMMON.N28S.register_scripts({ Script() })

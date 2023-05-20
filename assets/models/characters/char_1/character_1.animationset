@@ -1,0 +1,7 @@
+animations {
+  animation: "/assets/models/characters/char_1/run.dae"
+}
+animations {
+  animation: "/assets/models/characters/char_1/die.dae"
+}
+skeleton: "/assets/models/characters/char_1/run.dae"

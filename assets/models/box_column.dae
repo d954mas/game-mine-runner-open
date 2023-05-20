@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 3.2.2 commit date:2022-08-02, commit time:18:15, hash:bcfdb14560e7</authoring_tool>
+    </contributor>
+    <created>2022-12-05T22:30:23</created>
+    <modified>2022-12-05T22:30:23</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="boxVox_Backup_Material_001_003-effect">
+      <profile_COMMON>
+        <newparam sid="box_png_003-surface">
+          <surface type="2D">
+            <init_from>box_png_003</init_from>
+          </surface>
+        </newparam>
+        <newparam sid="box_png_003-sampler">
+          <sampler2D>
+            <source>box_png_003-surface</source>
+          </sampler2D>
+        </newparam>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <texture texture="box_png_003-sampler" texcoord="box_2-mesh-map-0"/>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.45</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images/>
+  <library_materials>
+    <material id="boxVox_Backup_Material_001_003-material" name="boxVox_Backup_Material 001.003">
+      <instance_effect url="#boxVox_Backup_Material_001_003-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="box_2_003-mesh" name="box_2.003">
+      <mesh>
+        <source id="box_2_003-mesh-positions">
+          <float_array id="box_2_003-mesh-positions-array" count="120">-0.4942484 -0.5141025 0.5115404 0.5057516 -0.5141025 -0.4884596 0.5057516 0.4858975 0.5115404 -0.4942484 -0.5141025 -0.4884596 0.5057516 -0.5141025 0.5115404 -0.4942484 1.485898 0.5115402 -0.4942484 0.4858975 0.5115402 0.5057516 1.485898 -0.4884598 0.5057516 0.4858975 -0.4884598 -0.4942484 0.4858975 -0.4884598 0.5057516 2.485898 -0.48846 -0.4942484 1.485898 -0.48846 -0.4942484 2.485898 -0.48846 0.5057516 1.485898 0.5115401 -0.4942484 2.485898 0.51154 -0.4942484 3.485898 -0.4884601 0.5057516 2.485898 0.51154 -0.4942484 4.485898 0.5115398 -0.4942484 3.485898 0.5115398 0.5057516 3.485898 -0.4884603 0.5057516 4.485898 0.5115398 -0.4942484 4.485898 -0.4884603 0.5057516 3.485898 0.5115398 -0.4942484 5.485898 0.5115396 0.5057516 5.485898 -0.4884604 0.5057516 4.485898 -0.4884604 -0.4942484 5.485898 -0.4884604 0.5057516 6.485898 -0.4884606 0.5057516 6.485898 0.5115395 0.5057516 5.485898 0.5115395 -0.4942484 7.485898 0.5115393 -0.4942484 6.485898 0.5115393 0.5057516 7.485898 -0.4884607 0.5057516 7.485898 0.5115393 -0.4942484 6.485898 -0.4884607 -0.4942484 7.485898 -0.4884607 -0.4942484 -1.514102 0.5115406 0.5057516 -1.514102 -0.4884595 -0.4942484 -1.514102 -0.4884595 0.5057516 -1.514102 0.5115406</float_array>
+          <technique_common>
+            <accessor source="#box_2_003-mesh-positions-array" count="40" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="box_2_003-mesh-normals">
+          <float_array id="box_2_003-mesh-normals-array" count="141">1 0 0 0 -1.49012e-7 -1 -1 0 0 -2.07928e-7 1.78814e-7 1 0 1 0 0 -1 0 1 0 0 0 -1.78814e-7 -1 -1 0 0 1.19209e-7 0 1 1 0 0 1.78814e-7 0 -1 -1 0 0 0 2.38419e-7 1 1 0 0 0 -2.08616e-7 -1 -1.19209e-7 -1.19209e-7 -1 0 0 1 1 0 0 -1.19209e-7 -1.49012e-7 -1 -1 0 0 2.38419e-7 1.78814e-7 1 0 -3.27826e-7 -1 -1.19209e-7 2.98023e-7 1 1 0 0 0 1.78814e-7 1 1 0 0 0 -1.49012e-7 -1 -1 0 0 0 1 0 -1 0 0 -2.38419e-7 2.98023e-7 1 1 1.19209e-7 0 0 -1.78814e-7 -1 1.19209e-7 1.19209e-7 1 -1.19209e-7 -3.27826e-7 -1 -1 0 0 -1.78814e-7 -1.49012e-7 -1 -1 0 0 0 0 -1 0 2.98023e-7 1 1 1.19209e-7 0 1.78814e-7 -1.78814e-7 -1 -1 0 0 -1.19209e-7 1.78814e-7 1 -1 0 0 0 1.78814e-7 1</float_array>
+          <technique_common>
+            <accessor source="#box_2_003-mesh-normals-array" count="47" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="box_2_003-mesh-map-0">
+          <float_array id="box_2_003-mesh-map-0-array" count="552">0 0 1 1 0 1 0 1 1 0 0 0 1 1 0 0 0 1 0 0 1 1 0 1 0 1 1 0 0 0 1 0 0 1 0 0 0 0 1 1 0 1 0 1 1 0 0 0 1 1 0 0 0 1 0 0 1 1 0 1 0 1 1 0 0 0 0 0 1 1 0 1 0 1 1 0 0 0 1 1 0 0 0 1 0 0 1 1 0 1 0 1 1 0 0 0 0 0 1 1 0 1 0 1 1 0 0 0 1 1 0 0 0 1 0 0 1 1 0 1 0 0 1 1 1 0 0 0 1 1 0 1 0 1 1 0 0 0 1 1 0 0 0 1 0 0 1 1 0 1 0 0 1 1 1 0 0 0 1 1 0 1 0 1 1 0 0 0 1 1 0 0 0 1 0 0 1 1 0 1 0 0 1 1 1 0 0 0 1 1 0 1 0 1 1 0 0 0 1 1 0 0 0 1 0 0 1 1 0 1 0 1 1 0 0 0 0 0 1 1 0 1 0 1 1 0 0 0 1 0 0 1 1 1 0 0 1 1 0 1 0 1 1 0 0 0 0 0 1 1 0 1 0 1 1 0 0 0 1 1 0 0 0 1 0 0 1 1 0 1 1 0 0 1 0 0 0 0 1 0 1 1 0 1 1 1 1 0 1 1 1 0 0 0 0 0 1 0 1 1 0 1 1 1 1 0 1 0 1 1 0 1 0 0 1 0 1 1 0 1 1 1 1 0 1 1 1 0 0 0 0 0 1 0 1 1 0 1 1 1 1 0 0 0 1 0 1 1 0 1 1 1 1 0 1 1 1 0 0 0 0 0 1 0 1 1 0 1 1 1 1 0 0 0 1 0 1 1 0 1 1 1 1 0 1 1 1 0 0 0 0 0 1 0 1 1 0 0 0 1 1 1 0 0 1 0 1 1 0 1 1 1 1 0 1 1 1 0 0 0 0 0 1 0 1 1 0 0 0 1 1 1 0 0 1 0 1 1 0 1 1 1 1 0 1 1 1 0 0 0 0 0 1 0 1 1 0 0 0 1 1 1 0 0 1 0 1 1 0 1 1 1 1 0 1 1 1 0 0 0 0 0 1 0 1 1 0 1 1 1 1 0 0 0 1 0 1 1 0 1 1 1 1 0 1 0 0 0 0 1 0 0 1 0 1 1 0 1 1 1 1 0 0 0 1 0 1 1 0 1 1 1 1 0 1 1 1 0 0 0 0 0 1 0 1 1 1 0 1 1 0 1</float_array>
+          <technique_common>
+            <accessor source="#box_2_003-mesh-map-0-array" count="276" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="box_2_003-mesh-vertices">
+          <input semantic="POSITION" source="#box_2_003-mesh-positions"/>
+        </vertices>
+        <triangles material="boxVox_Backup_Material_001_003-material" count="92">
+          <input semantic="VERTEX" source="#box_2_003-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#box_2_003-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#box_2_003-mesh-map-0" offset="2" set="0"/>
+          <p>1 0 0 2 0 1 4 0 2 9 1 3 1 1 4 3 1 5 6 2 6 3 2 7 0 2 8 0 3 9 2 3 10 6 3 11 6 4 12 8 4 13 9 4 14 1 5 15 0 5 16 3 5 17 8 6 18 13 6 19 2 6 20 11 7 21 8 7 22 9 7 23 5 8 24 9 8 25 6 8 26 6 9 27 13 9 28 5 9 29 5 4 30 7 4 31 11 4 32 7 10 33 16 10 34 13 10 35 12 11 36 7 11 37 11 11 38 14 12 39 11 12 40 5 12 41 5 13 42 16 13 43 14 13 44 14 4 45 10 4 46 12 4 47 10 14 48 22 14 49 16 14 50 15 15 51 10 15 52 12 15 53 18 8 54 12 8 55 14 8 56 14 13 57 22 13 58 18 13 59 15 4 60 22 4 61 19 4 62 19 0 63 20 0 64 22 0 65 21 16 66 19 16 67 15 16 68 17 8 69 15 8 70 18 8 71 18 17 72 20 17 73 17 17 74 21 4 75 20 4 76 25 4 77 25 18 78 29 18 79 20 18 80 26 19 81 25 19 82 21 19 83 23 20 84 21 20 85 17 20 86 17 21 87 29 21 88 23 21 89 26 4 90 29 4 91 24 4 92 24 0 93 28 0 94 29 0 95 34 22 96 24 22 97 26 22 98 31 8 99 26 8 100 23 8 101 23 23 102 28 23 103 31 23 104 31 4 105 27 4 106 34 4 107 27 24 108 33 24 109 28 24 110 35 11 111 27 11 112 34 11 113 35 8 114 31 8 115 30 8 116 31 17 117 33 17 118 30 17 119 30 4 120 32 4 121 35 4 122 37 24 123 4 24 124 39 24 125 3 1 126 37 1 127 38 1 128 0 2 129 38 2 130 36 2 131 36 25 132 4 25 133 0 25 134 37 5 135 36 5 136 38 5 137 1 26 138 8 26 139 2 26 140 9 27 141 8 27 142 1 27 143 6 28 144 9 28 145 3 28 146 0 17 147 4 17 148 2 17 149 6 29 150 2 29 151 8 29 152 1 5 153 4 5 154 0 5 155 8 0 156 7 0 157 13 0 158 11 11 159 7 11 160 8 11 161 5 30 162 11 30 163 9 30 164 6 31 165 2 31 166 13 31 167 5 4 168 13 4 169 7 4 170 7 32 171 10 32 172 16 32 173 12 33 174 10 33 175 7 33 176 14 8 177 12 8 178 11 8 179 5 34 180 13 34 181 16 34 182 14 4 183 16 4 184 10 4 185 10 0 186 19 0 187 22 0 188 15 35 189 19 35 190 10 35 191 18 36 192 15 36 193 12 36 194 14 13 195 16 13 196 22 13 197 15 4 198 18 4 199 22 4 200 19 26 201 25 26 202 20 26 203 21 37 204 25 37 205 19 37 206 17 38 207 21 38 208 15 38 209 18 17 210 22 17 211 20 17 212 21 4 213 17 4 214 20 4 215 25 0 216 24 0 217 29 0 218 26 39 219 24 39 220 25 39 221 23 28 222 26 28 223 21 28 224 17 40 225 20 40 226 29 40 227 26 4 228 23 4 229 29 4 230 24 41 231 27 41 232 28 41 233 34 42 234 27 42 235 24 42 236 31 43 237 34 43 238 26 43 239 23 9 240 29 9 241 28 9 242 31 4 243 28 4 244 27 4 245 27 0 246 32 0 247 33 0 248 35 27 249 32 27 250 27 27 251 35 8 252 34 8 253 31 8 254 31 44 255 28 44 256 33 44 257 30 4 258 33 4 259 32 4 260 37 0 261 1 0 262 4 0 263 3 1 264 1 1 265 37 1 266 0 45 267 3 45 268 38 45 269 36 46 270 39 46 271 4 46 272 37 5 273 39 5 274 36 5 275</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="boxColumn_001" name="boxColumn.001" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 -1.62921e-7 -1 0 0 1 -1.62921e-7 1.5 0 0 0 1</matrix>
+        <instance_geometry url="#box_2_003-mesh" name="boxColumn.001">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="boxVox_Backup_Material_001_003-material" target="#boxVox_Backup_Material_001_003-material">
+                <bind_vertex_input semantic="box_2-mesh-map-0" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

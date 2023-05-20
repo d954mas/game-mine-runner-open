@@ -1,0 +1,7 @@
+mesh: "/assets/models/characters/char_lera_craft/char_lera_craft.dae"
+material: "/assets/materials/character_material.material"
+textures: "/assets/textures/rgb/pallete.png"
+skeleton: "/assets/models/characters/char_lera_craft/char_lera_craft.dae"
+animations: "/assets/models/characters/char_1/character_1.animationset"
+default_animation: "run"
+name: "unnamed"

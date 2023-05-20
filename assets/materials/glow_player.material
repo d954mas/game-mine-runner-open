@@ -1,0 +1,47 @@
+name: "sprite"
+tags: "glow_player"
+vertex_program: "/assets/materials/glow_gem.vp"
+fragment_program: "/assets/materials/glow_gem_player.fp"
+vertex_space: VERTEX_SPACE_WORLD
+vertex_constants {
+  name: "view_proj"
+  type: CONSTANT_TYPE_VIEWPROJ
+}
+fragment_constants {
+  name: "tint"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.5
+    y: 0.5
+    z: 1.0
+    w: 0.6
+  }
+}
+fragment_constants {
+  name: "fog"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 0.0
+  }
+}
+fragment_constants {
+  name: "fog_color"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 0.0
+  }
+}
+samplers {
+  name: "texture0"
+  wrap_u: WRAP_MODE_REPEAT
+  wrap_v: WRAP_MODE_REPEAT
+  filter_min: FILTER_MODE_MIN_NEAREST
+  filter_mag: FILTER_MODE_MAG_NEAREST
+  max_anisotropy: 0.0
+}

@@ -1,0 +1,200 @@
+local COMMON = require "libs.common"
+local ACTIONS = require "libs.actions.actions"
+local TWEEN = require "libs.tween"
+local BaseGuiScript = require "libs_project.scripts.base_gui_script"
+local WORLD = require "world.world"
+
+local COLOR_INVISIBLE = vmath.vector4(1, 1, 1, 0)
+local COLOR_WHITE = vmath.vector4(1, 1, 1, 1)
+local COLOR_NOTIFICATION_SHOW = vmath.vector4(1, 1, 1, 0.85)
+
+---@class FlyObjectGui
+local FlyObject = COMMON.class("FlyObject")
+
+function FlyObject:initialize(nodes)
+	self.vh = {
+		root = nodes["root"],
+		icon = nodes["icon"],
+	}
+	self.action = ACTIONS.Sequence()
+end
+
+function FlyObject:fly(config)
+	gui.set_screen_position(self.vh.root, assert(config.from))
+	local gui_pos_x, gui_pos_y = config.from.x, config.from.y
+
+	local target = config.to
+	local target_gui_x, target_gui_y = target.x, target.y
+
+	local dx = target_gui_x - gui_pos_x
+	local dy = target_gui_y - gui_pos_y
+
+	local tween_table = { dx = 0, dy = 0 }
+	local dx_time = math.abs(dx / config.speed_x or 500)
+	local dy_time = math.abs(dy / config.speed_y or 500)
+	local time = math.max(dx_time, dy_time)
+	local tween_x = ACTIONS.TweenTable { delay = 0.1, object = tween_table, property = "dx", from = { dx = 0 },
+										 to = { dx = dx }, time = time, easing = TWEEN.easing.linear }
+	local tween_y = ACTIONS.TweenTable { delay = 0.1, object = tween_table, property = "dy", from = { dy = 0 },
+										 to = { dy = dy }, time = time + 0.1, easing = TWEEN.easing.outQuad }
+	local move_action = ACTIONS.Parallel()
+	move_action:add_action(tween_x)
+	move_action:add_action(tween_y)
+	move_action:add_action(function()
+		while (tween_table.dx ~= dx and tween_table.dy ~= dy) do
+			gui.set_screen_position(self.vh.root, vmath.vector3(gui_pos_x + tween_table.dx, gui_pos_y + tween_table.dy, 0))
+			coroutine.yield()
+		end
+		gui.set_screen_position(self.vh.root, config.to)
+	end)
+
+	self.action:add_action(function()
+		gui.set_enabled(self.vh.root, true)
+	end)
+	local action_appear = ACTIONS.Parallel()
+	if (config.appear) then
+		gui.set_color(self.vh.root, vmath.vector4(1, 1, 1, 0))
+		local tint = ACTIONS.TweenGui { object = self.vh.root, property = "color", v4 = true,
+										from = COLOR_INVISIBLE, to = COLOR_WHITE, time = 0.25,
+										easing = TWEEN.easing.inQuad }
+		action_appear:add_action(tint)
+	end
+
+	action_appear:add_action(ACTIONS.Wait { time = 0.1 })
+	action_appear:add_action(move_action)
+
+	self.action:add_action(action_appear)
+	self.action:add_action(function()
+		if (config.cb) then
+			config.cb()
+		end
+		COMMON.coroutine_wait(0.1)
+		gui.delete_node(self.vh.root)
+	end)
+end
+
+function FlyObject:update(dt)
+	self.action:update(dt)
+end
+
+function FlyObject:is_animated()
+	return self.action:is_running()
+end
+
+---@class FlyObjectsGuiScript:GuiScriptBase
+local Script = COMMON.class("FlyObjectsGuiScript", BaseGuiScript)
+
+function Script:init()
+	BaseGuiScript.init(self, { context_name = COMMON.CONTEXT.NAMES.FLY_OBJECTS_GUI })
+	self.animations = ACTIONS.Parallel()
+	self.animations.drop_empty = false
+	self.notifications = ACTIONS.Sequence()
+	self.notifications.drop_empty = false
+end
+
+function Script:create_fly_gem()
+	local nodes = gui.clone_tree(self.vh.fly_gem)
+	local fly_object = FlyObject({ root = nodes["fly_gem"], icon = nodes["fly_gem/icon"] })
+	table.insert(self.fly_objects, fly_object)
+	return fly_object
+end
+
+function Script:create_fly_star()
+	local nodes = gui.clone_tree(self.vh.fly_star)
+	local fly_object = FlyObject({ root = nodes["fly_star"], icon = nodes["fly_star/icon"] })
+	table.insert(self.fly_objects, fly_object)
+	return fly_object
+end
+
+function Script:bind_vh()
+	self.vh = {
+		fly_gem = gui.get_node("fly_gem"),
+		fly_star = gui.get_node("fly_star"),
+		notification_gem = gui.get_node("notification_gem/root"),
+		notification_mission = gui.get_node("notification_mission/root")
+	}
+end
+
+function Script:notification_mission(description)
+	local nodes = gui.clone_tree(self.vh.notification_mission)
+	local root = assert(nodes["notification_mission/root"])
+	local lbl = assert(nodes["notification_mission/lbl"])
+	local lbl_title = assert(nodes["notification_mission/title"])
+	gui.set_text(lbl, description)
+	gui.set_text(lbl_title, COMMON.LOCALIZATION.notification_mission_title())
+	self:notification_animate(root)
+end
+
+function Script:notification_gem(gem)
+	local nodes = gui.clone_tree(self.vh.notification_gem)
+	local root = assert(nodes["notification_gem/root"])
+	local icon = assert(nodes["notification_gem/icon"])
+	local lbl_title = assert(nodes["notification_gem/title"])
+	local image = "gem_yellow"
+	if (gem == 2) then
+		image = "gem_red"
+	elseif (gem == 3) then
+		image = "gem_green"
+	end
+	gui.play_flipbook(icon, image)
+	gui.set_text(lbl_title, COMMON.LOCALIZATION.notification_gem_title())
+	self:notification_animate(root)
+end
+
+function Script:notification_animate(root)
+	WORLD.sounds:play_sound(WORLD.sounds.sounds.ui_task_completed_popup)
+	gui.set_color(root, COLOR_INVISIBLE)
+	gui.set_enabled(root, true)
+	local action = ACTIONS.Sequence()
+	action:add_action(ACTIONS.TweenGui { object = root, property = "color", v4 = true,
+										 from = COLOR_INVISIBLE, to = COLOR_NOTIFICATION_SHOW, time = 0.35,
+										 easing = TWEEN.easing.inQuad })
+	action:add_action(function()
+		COMMON.coroutine_wait(0.5)
+	end)
+	action:add_action(ACTIONS.TweenGui { object = root, property = "color", v4 = true,
+										 from = COLOR_NOTIFICATION_SHOW, to = COLOR_INVISIBLE, time = 1,
+										 easing = TWEEN.easing.inQuad })
+	action:add_action(function()
+		gui.delete_node(root)
+	end)
+	self.notifications:add_action(action)
+
+end
+
+function Script:init_gui()
+	BaseGuiScript.init_gui(self)
+	gui.set_enabled(self.vh.fly_gem, false)
+	gui.set_enabled(self.vh.fly_star, false)
+	gui.set_enabled(self.vh.notification_gem, false)
+	gui.set_enabled(self.vh.notification_mission, false)
+	---@type FlyObjectGui[]
+	self.fly_objects = {}
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.FLY_OBJECTS)
+
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.DAILY_GEM_COLLECT):go(self.scheduler)
+								:subscribe(function(data)
+		self:notification_gem(data.type)
+	end))
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.MISSION_COMPLETED):go(self.scheduler)
+								:subscribe(function(data)
+		self:notification_mission(WORLD.game.tasks:get_title(data.idx))
+	end))
+
+end
+
+function Script:update(dt)
+	BaseGuiScript.update(self, dt)
+	self.animations:update(dt)
+	self.notifications:update(dt)
+
+	for i = #self.fly_objects, 1, -1 do
+		local fly_object = self.fly_objects[i]
+		fly_object:update(dt)
+		if (not fly_object:is_animated()) then
+			table.remove(self.fly_objects, i)
+		end
+	end
+end
+
+COMMON.N28S.register_scripts({ Script() })

@@ -1,0 +1,27 @@
+Defender Error file
+-------------------
+    Platform: Windows  10  10.0.19044
+    Defender version: (1, 3, 1)
+    Blender version: (2, 80, 0)
+
+Defender Errors
+---------------
+    [Scene] No Collection found. Please add a collection.
+
+Defender Error Report Info
+--------------------------
+    sync_mode        = "Sync Build",
+    sync_proj        = "C:\\Users\\user\\defold\\defold-jam-2022",
+    sync_scene       = "vagon_scene",
+    sync_shader      = "Model Material",
+    sync_light_mode  = "Light Local",
+    sync_light_vec   = { x = 0.0, y = -1.0, z = 0.0 },
+    sync_mat_params   = { x = 0.10000000149011612, y = 1.0, z = 0.5 },
+    sync_mat_facenormals = false,
+    sync_mat_uv2     = false,
+    stream_info      = false,
+    stream_object    = true,
+    stream_mesh      = true,
+    stream_mesh_type = "collada",
+    stream_anim      = false,
+    stream_anim_name = "",

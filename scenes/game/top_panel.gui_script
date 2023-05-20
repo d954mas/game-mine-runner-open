@@ -1,0 +1,198 @@
+local COMMON = require "libs.common"
+local GUI = require "libs_project.gui.gui"
+local ACTIONS = require "libs.actions.actions"
+local TWEEN = require "libs.tween"
+local ENUMS = require "world.enums.enums"
+local BaseGuiScript = require "libs_project.scripts.base_gui_script"
+local SoundMusicGuiScript = require "libs.scripts.sound_music_gui_script"
+local WORLD = require "world.world"
+
+---@class TopPanelGuiScript:GuiScriptBase
+local Script = COMMON.class("TopPanelGuiScript", BaseGuiScript)
+
+function Script:init()
+	BaseGuiScript.init(self, { context_name = COMMON.CONTEXT.NAMES.TOP_PANEL_GUI, input = true })
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.TOP_PANEL)
+	self.animation_action = ACTIONS.Sequence()
+	self.animation_action.drop_empty = false
+	self:animate_hide()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+	self.gems = 0
+	self:change_gems(WORLD.storage.game:gems_get())
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.WINDOW_RESIZED):go_distinct(self.scheduler):subscribe(function ()
+		self:on_resize()
+	end))
+	self:on_resize()
+end
+
+function Script:init_gui()
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.GEMS_ADD):go(self.scheduler):subscribe(function(data)
+		if (data.type == ENUMS.GEMS_ADD_TYPE.SHOP_OFFER) then
+			local ctx_shop = COMMON.CONTEXT:set_context_top_shop_gui()
+			local from = gui.get_screen_position(ctx_shop.data.vh.offer_gem_fly_point)
+			ctx_shop:remove()
+			local to = gui.get_screen_position(self.vh.gem_icon)
+			self:fly_gems(data.gems, from, to)
+		elseif (data.type == ENUMS.GEMS_ADD_TYPE.TASK_REWARD) then
+			local ctx_menu = COMMON.CONTEXT:set_context_top_menu_gui()
+			local from = gui.get_screen_position(ctx_menu.data.views.tasks.vh.completed.reward_gem.icon)
+			ctx_menu:remove()
+			local to = gui.get_screen_position(self.vh.gem_icon)
+			self:fly_gems(data.gems, from, to)
+		elseif (data.type == ENUMS.GEMS_ADD_TYPE.DAILY_REWARD) then
+			local ctx_reward = COMMON.CONTEXT:set_context_top_reward_gui()
+			local from = gui.get_screen_position(ctx_reward.data.vh.reward_gem.icon)
+			ctx_reward:remove()
+			local to = gui.get_screen_position(self.vh.gem_icon)
+			self:fly_gems(data.gems, from, to, 1.4)
+		else
+			self:change_gems(data.gems)
+		end
+	end))
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.GEMS_SPEND):go(self.scheduler):subscribe(function(data)
+		self:change_gems(-data.gems)
+	end))
+end
+
+function Script:fly_gems(gems, from, to,speed_scale)
+	local split = 1
+	speed_scale = speed_scale or 1
+	if (gems < 10) then
+	elseif (gems < 100) then
+		split = 2 + math.random(1, 2)
+	elseif (gems < 300) then
+		split = 5 + math.random(1, 5)
+	elseif (gems < 1000) then
+		split = 10 + math.random(1, 5)
+	end
+	local values = {}
+	local split_value = math.floor(gems / split)
+
+	for i = 1, split - 1 do
+		table.insert(values, split_value)
+	end
+	table.insert(values, gems - split_value * (split - 1))
+
+	local ctx = COMMON.CONTEXT:set_context_top_fly_objects()
+	local delay = 0
+	for _, value in ipairs(values) do
+		local fly_object = ctx.data:create_fly_gem()
+		local from_v = vmath.vector3(from)
+		local screen_scale_x = COMMON.RENDER.screen_size.w / 960
+		local screen_scale_y = COMMON.RENDER.screen_size.h / 540
+		local dx = 100
+		from_v.x = from_v.x + (-dx / 2 + math.random() * dx) * screen_scale_x
+		from_v.y = from_v.y + (-dx / 2 + math.random() * dx) * screen_scale_y
+		fly_object:fly({
+			from = from_v, to = to, delay = delay, appear = true,
+			speed_x = (250 + math.random() * 300) * screen_scale_x * speed_scale,
+			speed_y = (300 + math.random() * 300) * screen_scale_y * speed_scale,
+			cb = function()
+				local ctx_top_panel = COMMON.CONTEXT:set_context_top_top_panel_gui()
+				self:change_gems(value)
+				ctx_top_panel:remove()
+				WORLD.sounds:play_sound(WORLD.sounds.sounds.gem_take)
+			end
+		})
+		delay = delay + math.random() * 0.1
+	end
+	ctx:remove()
+end
+
+function Script:bind_vh()
+	self.vh = {
+		top_right = gui.get_node("top_right"),
+		bottom_left = gui.get_node("bottom_left"),
+		bg_border = gui.get_node("cell_gems/bg_border"),
+		bg = gui.get_node("cell_gems/bg"),
+		gem_icon = gui.get_node("cell_gems/icon"),
+		lbl_gems = {
+			count = 0,
+			list = {
+				gui.get_node("cell_gems/lbl_1"),
+				gui.get_node("cell_gems/lbl_2"),
+				gui.get_node("cell_gems/lbl_3"),
+				gui.get_node("cell_gems/lbl_4"),
+				gui.get_node("cell_gems/lbl_5"),
+				gui.get_node("cell_gems/lbl_6"),
+				gui.get_node("cell_gems/lbl_7"),
+				gui.get_node("cell_gems/lbl_8"),
+			}
+		},
+	}
+	self.views = {
+		lbl_gems = GUI.CounterLabel({
+			labels = self.vh.lbl_gems.list,
+			min_labels = 1
+		}),
+	}
+end
+
+function Script:animate_hide()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.top_right, property = "color", v4 = true,
+												to = vmath.vector4(1, 1, 1, 0), time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_left, property = "color", v4 = true,
+												to = vmath.vector4(1, 1, 1, 0), time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	self.animation_action:add_action(show_parallel)
+end
+
+function Script:animate_show()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+	gui.set_color(self.vh.top_right, vmath.vector4(1, 1, 1, 0))
+	gui.set_color(self.vh.bottom_left, vmath.vector4(1, 1, 1, 0))
+
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.top_right, property = "color", v4 = true,
+												to = vmath.vector4(1, 1, 1, 1), time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_left, property = "color", v4 = true,
+												to = vmath.vector4(1, 1, 1, 1), time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	self.animation_action:add_action(show_parallel)
+	self.animation_action:add_action(function()
+		COMMON.INPUT.acquire()
+	end)
+end
+function Script:update(dt)
+	BaseGuiScript.update(self, dt)
+	self.animation_action:update(dt)
+end
+
+local V_SIZE = vmath.vector3(0)
+function Script:change_gems(gems)
+	self.gems = self.gems + gems
+	self.views.lbl_gems:set_value(self.gems)
+	if (self.vh.lbl_gems.count ~= self.views.lbl_gems.count) then
+		self.vh.lbl_gems.count = self.views.lbl_gems.count
+		local bg_w = 17 * math.max(2, self.vh.lbl_gems.count) + 91 + 18
+		V_SIZE.x = bg_w
+		V_SIZE.y = 42
+		gui.set_size(self.vh.bg_border, V_SIZE)
+		V_SIZE.x = bg_w - 2
+		V_SIZE.y = 37
+		gui.set_size(self.vh.bg, V_SIZE)
+	end
+end
+
+function Script:on_storage_changed()
+
+end
+
+function Script:on_resize()
+	local insets, status = safearea.get_insets()
+	if(status == safearea.STATUS_OK)then
+		local d_left = 960 * insets.left/COMMON.RENDER.screen_size.w
+		local d_right = 960 * insets.right/COMMON.RENDER.screen_size.w
+		gui.set_position(self.vh.bottom_left,vmath.vector3(d_left,0,0))
+		gui.set_position(self.vh.top_right,vmath.vector3(960-d_right,540,0))
+	elseif(status == safearea.STATUS_NOT_READY_YET)then
+		timer.delay(0.5,false,function()
+			self:on_resize()
+		end)
+	end
+end
+
+COMMON.N28S.register_scripts({ Script(), SoundMusicGuiScript() })

@@ -1,0 +1,76 @@
+local COMMON = require "libs.common"
+local WIDTH = 960
+local HEIGHT = 540
+local LOCK_WIDTH = false
+local RESOLUTION_SCALE = 1.5
+local INIT_SIZE = 1
+local TAG = "RESIZER"
+local resolutions = {
+	{16,9},
+	{19.5,9},
+	{4,3},
+}
+if(WIDTH<HEIGHT)then
+	for _,r in ipairs(resolutions)do
+		local r1 = r[1]
+		r[1]=r[2]
+		r[2] = r1
+	end
+end
+
+local sizes = {}
+for _,size in ipairs(resolutions) do
+	local w,h
+	local aspect = size[1]/size[2]
+	if LOCK_WIDTH then w = WIDTH h = WIDTH / aspect
+	else w = HEIGHT *aspect  h = HEIGHT end
+
+	local tag = string.format("%.1fx%.1f %dx%d",size[1],size[2],w,h)
+	table.insert(sizes,{math.floor(w),math.floor(h),tag=tag})
+end
+
+
+
+
+local Script = COMMON.new_n28s()
+
+function Script:init()
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.DEBUG)
+	COMMON.INPUT.acquire()
+	self.resize_node = gui.get_node("resize_node")
+	local os = sys.get_sys_info().system_name
+	if os ~= "Windows" and os ~= "Darwin" then
+		msg.post(".", COMMON.HASHES.MSG.DISABLE)
+	end
+	self.timer = timer.delay(3,true,function ()
+		COMMON.INPUT.acquire()--make resizer always on top
+	end)
+	self:change_size(INIT_SIZE)
+end
+
+function Script:change_size(idx)
+	local size = assert(sizes[idx],"no size for:" .. idx)
+	defos.set_view_size(nil, nil, size[1]*RESOLUTION_SCALE, size[2]*RESOLUTION_SCALE)
+	COMMON.i(string.format("change size to:%s scaled:%dx%d",size.tag,size[1]*RESOLUTION_SCALE,size[2]*RESOLUTION_SCALE),TAG)
+end
+
+function Script:update()
+end
+
+function Script:on_input(action_id, action)
+	if action_id == COMMON.HASHES.INPUT.RIGHT_CLICK and action.released and
+			gui.pick_node(self.resize_node, action.x, action.y) then
+		mnu.begin()
+		for i,size in ipairs(sizes) do
+			mnu.label(i, true, size.tag)
+		end
+		mnu.finish()
+		local _, _, _, h = defos.get_view_size()
+		local result = mnu.show(action.screen_x, h - action.screen_y)
+		if result == 0 then return end
+		self:change_size(result)
+		return true
+	end
+end
+
+COMMON.N28S.register(Script())

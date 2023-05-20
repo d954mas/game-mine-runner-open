@@ -1,0 +1,816 @@
+local COMMON = require "libs.common"
+local GUI = require "libs_project.gui.gui"
+local ACTIONS = require "libs.actions.actions"
+local SM = require "libs_project.sm"
+local TWEEN = require "libs.tween"
+local BaseGuiScript = require "libs_project.scripts.base_gui_script"
+local WORLD = require "world.world"
+local DEFS = require "world.balance.def.defs"
+
+local COLOR_INVISIBLE = vmath.vector4(1, 1, 1, 0)
+local COLOR_WHITE = vmath.vector4(1, 1, 1, 1)
+
+local WorldCell = COMMON.class("WorldCell")
+
+function WorldCell:initialize(template_name)
+	self.template_name = assert(template_name)
+	self.vh = {
+		root = gui.get_node(self.template_name .. "/root"),
+		lbl = gui.get_node(self.template_name .. "/lbl"),
+	}
+	self.views = {
+		btn_prev = GUI.ButtonScale(self.template_name .. "/btn_prev"),
+		btn_next = GUI.ButtonScale(self.template_name .. "/btn_next")
+	}
+	self:on_storage_changed()
+
+	self.views.btn_next:set_input_listener(function()
+		local idx = COMMON.LUME.findi(DEFS.WORLDS.WORLD_LIST, self.current_world)
+		idx = idx + 1
+		WORLD.game:set_tunnel_world(DEFS.WORLDS.WORLD_LIST[idx])
+		WORLD.highscores:highscores_load(WORLD.storage.game:world_id_get())
+		self:on_storage_changed()
+
+	end)
+
+	self.views.btn_prev:set_input_listener(function()
+		local idx = COMMON.LUME.findi(DEFS.WORLDS.WORLD_LIST, self.current_world)
+		idx = idx - 1
+		WORLD.game:set_tunnel_world(DEFS.WORLDS.WORLD_LIST[idx])
+		WORLD.highscores:highscores_load(WORLD.storage.game:world_id_get())
+		self:on_storage_changed()
+	end)
+end
+
+function WorldCell:on_storage_changed()
+	self.current_world = assert(WORLD.storage.game:world_id_def_get())
+	local idx = COMMON.LUME.findi(DEFS.WORLDS.WORLD_LIST, self.current_world)
+	self.views.btn_prev:set_enabled(idx > 1)
+	self.views.btn_next:set_enabled(idx < #DEFS.WORLDS.WORLD_LIST)
+	gui.set_text(self.vh.lbl, COMMON.LOCALIZATION[self.current_world.id .. "_title"]())
+end
+
+function WorldCell:on_input(action_id, action)
+	if self.views.btn_next:on_input(action_id, action) then return true end
+	if self.views.btn_prev:on_input(action_id, action) then return true end
+end
+
+local DailyGui = COMMON.class("DailyGui")
+
+function DailyGui:initialize(template_name)
+	self.template_name = assert(template_name)
+	self.vh = {
+		root = gui.get_node(self.template_name .. "/root"),
+		lbl_timer = gui.get_node(self.template_name .. "/lbl_timer"),
+		lbl_description = gui.get_node(self.template_name .. "/lbl_description"),
+		lbl_description_wait = gui.get_node(self.template_name .. "/lbl_description_wait"),
+		icon_clock = gui.get_node(self.template_name .. "/icon_clock"),
+		circle = gui.get_node(self.template_name .. "/circle"),
+		touch_zone = gui.get_node(self.template_name .. "/touch_zone/root"),
+		lbl_root = gui.get_node(self.template_name .. "/lbl_root"),
+		circle_glow = gui.get_node(self.template_name .. "/circle_glow"),
+		gems = {
+			gui.get_node(self.template_name .. "/gem_1"),
+			gui.get_node(self.template_name .. "/gem_2"),
+			gui.get_node(self.template_name .. "/gem_3"),
+		},
+	}
+	self.views = {
+		btn_collect = GUI.ButtonScale(self.template_name .. "/touch_zone")
+	}
+	self.views.btn_collect.scale = 1
+
+	gui.animate(self.vh.circle_glow, "scale", vmath.vector3(4.2), go.EASING_INQUAD, 1.5, 0, nil, gui.PLAYBACK_LOOP_PINGPONG)
+
+	self.state = nil --FIND CAN_COLLECT WAIT
+	self.time_wait = 0
+	self.actions = ACTIONS.Sequence()
+	self.actions.drop_empty = false
+
+	--timer.delay(1, true, function()
+	--	self:update_timer()
+	--end)
+	--self:update_timer()
+
+	gui.set_text(self.vh.lbl_description, COMMON.LOCALIZATION.daily_description_find_all())
+	gui.set_text(self.vh.lbl_description_wait, COMMON.LOCALIZATION.daily_wait())
+
+	self:on_storage_changed()
+end
+
+function DailyGui:update_timer()
+	local dt = math.max(self.time_wait - os.time(), 0)
+	gui.set_text(self.vh.lbl_timer, COMMON.LUME.get_human_time(dt))
+end
+
+function DailyGui:collect_reward()
+	if (self.actions:is_empty()) then
+		local show_parallel = ACTIONS.Parallel()
+		local rotation_gem = ACTIONS.Sequence()
+		COMMON.INPUT.IGNORE = true
+		rotation_gem:add_action(ACTIONS.TweenGui { delay = 0.05, object = self.vh.circle, property = "rotation", v3 = true,
+												   from = vmath.vector3(0, 0, 0), to = vmath.vector3(0, 0, 240), time = 0.4, easing = TWEEN.easing.outCubic })
+		rotation_gem:add_action(ACTIONS.TweenGui { object = self.vh.circle, property = "rotation", v3 = true,
+												   from = vmath.vector3(0, 0, 240), to = vmath.vector3(0, 0, -180), time = 0.6, easing = TWEEN.easing.outCubic })
+
+		rotation_gem:add_action(ACTIONS.TweenGui { object = self.vh.circle, property = "rotation", v3 = true,
+												   from = vmath.vector3(0, 0, -180), to = vmath.vector3(0, 0, 0), time = 0.3, easing = TWEEN.easing.outCubic })
+
+		show_parallel:add_action(rotation_gem)
+		show_parallel:add_action(function()
+			local reward = WORLD.storage.game:gems_daily_get_reward()
+			SM:show(SM.MODALS.REWARD, { gems = reward.gems }, { delay = 1 })
+			WORLD.sounds:play_sound(WORLD.sounds.sounds.gem_daily_menu_bad)
+			COMMON.coroutine_wait(0.15)
+			WORLD.sounds:play_sound(WORLD.sounds.sounds.gem_daily_menu_success)
+			COMMON.coroutine_wait(0.4)
+			WORLD.sounds:play_sound(WORLD.sounds.sounds.gem_daily_menu_bad)
+			COMMON.coroutine_wait(0.4)
+			WORLD.sounds:play_sound(WORLD.sounds.sounds.gem_daily_menu_bad)
+			COMMON.INPUT.IGNORE = false
+
+		end)
+		self.actions:add_action(show_parallel)
+
+	end
+end
+
+function DailyGui:update(dt)
+	if (dt <= 0) then dt = 1 / 60 end
+	self.actions:update(dt)
+end
+
+function DailyGui:on_state_changed()
+	gui.set_enabled(self.vh.lbl_timer, false)
+	gui.set_enabled(self.vh.lbl_description, true)
+	gui.set_enabled(self.vh.lbl_description_wait, false)
+	gui.set_enabled(self.vh.icon_clock, false)
+	gui.set_enabled(self.vh.circle_glow, false)
+
+	if (self.state == "COLLECT") then
+		gui.set_text(self.vh.lbl_description, COMMON.LOCALIZATION.daily_description_click_to_collect())
+		gui.set_enabled(self.vh.circle_glow, true)
+
+	elseif (self.state == "WAIT") then
+		gui.set_text(self.vh.lbl_description, COMMON.LOCALIZATION.daily_description_find_all())
+		gui.set_enabled(self.vh.lbl_timer, true)
+		gui.set_enabled(self.vh.lbl_description_wait, true)
+		gui.set_enabled(self.vh.icon_clock, true)
+		gui.set_enabled(self.vh.lbl_description, false)
+		self:update_timer()
+	end
+end
+
+function DailyGui:on_storage_changed()
+	local state = "FIND"
+	local gs = WORLD.storage.game
+	local can_collect, time = gs:gems_daily_can_collect()
+	if (not can_collect) then
+		self.time_wait = time
+		state = "WAIT"
+	else
+		local have_all = gs:gems_daily_is_have(1) and gs:gems_daily_is_have(2) and gs:gems_daily_is_have(3)
+		if (have_all) then
+			state = "COLLECT"
+		end
+	end
+
+	--when find need to check gems views
+	for i = 1, 3 do
+		local gem_view = self.vh.gems[i]
+		local have = WORLD.storage.game:gems_daily_is_have(i)
+		gui.set_enabled(gem_view, have)
+	end
+
+	if (self.state ~= state) then
+		self.state = state
+		self:on_state_changed()
+	end
+end
+
+function DailyGui:on_input(action_id, action)
+	if (action_id == COMMON.HASHES.INPUT.TOUCH and action.pressed
+			and gui.pick_node(self.vh.touch_zone, action.x, action.y)) then
+		if (self.state == "COLLECT") then
+			self:collect_reward()
+		else
+			if (self.actions:is_empty()) then
+
+				local show_parallel = ACTIONS.Parallel()
+				local rotation_gem = ACTIONS.Sequence()
+				rotation_gem:add_action(ACTIONS.TweenGui { object = self.vh.circle, property = "rotation", v3 = true,
+														   from = vmath.vector3(0, 0, 0), to = vmath.vector3(0, 0, 25), time = 0.2, easing = TWEEN.easing.outCubic })
+				rotation_gem:add_action(ACTIONS.TweenGui { object = self.vh.circle, property = "rotation", v3 = true,
+														   from = vmath.vector3(0, 0, 25), to = vmath.vector3(0, 0, -15), time = 0.3, easing = TWEEN.easing.outCubic })
+				rotation_gem:add_action(ACTIONS.TweenGui { object = self.vh.circle, property = "rotation", v3 = true,
+														   from = vmath.vector3(0, 0, -15), to = vmath.vector3(0, 0, 0), time = 0.3, easing = TWEEN.easing.outCubic })
+
+				local label_scale = ACTIONS.Sequence()
+				label_scale:add_action(ACTIONS.TweenGui { object = self.vh.lbl_root, property = "scale", v3 = true,
+														  from = vmath.vector3(1), to = vmath.vector3(1.2), time = 0.15, easing = TWEEN.easing.linear })
+				label_scale:add_action(ACTIONS.TweenGui { delay = 0.05, object = self.vh.lbl_root, property = "scale", v3 = true,
+														  from = vmath.vector3(1.2), to = vmath.vector3(1), time = 0.2, easing = TWEEN.easing.linear })
+
+				label_scale:add_action(ACTIONS.TweenGui { delay = 0, object = self.vh.lbl_root, property = "scale", v3 = true,
+														  from = vmath.vector3(1), to = vmath.vector3(1.2), time = 0.15, easing = TWEEN.easing.linear })
+				label_scale:add_action(ACTIONS.TweenGui { delay = 0.05, object = self.vh.lbl_root, property = "scale", v3 = true,
+														  from = vmath.vector3(1.2), to = vmath.vector3(1), time = 0.15, easing = TWEEN.easing.linear })
+
+				show_parallel:add_action(rotation_gem)
+				show_parallel:add_action(label_scale)
+				show_parallel:add_action(function()
+					COMMON.coroutine_wait(0)
+					WORLD.sounds:play_sound(WORLD.sounds.sounds.gem_daily_menu_bad)
+				end)
+				self.actions:add_action(show_parallel)
+			end
+		end
+		return true
+	end
+end
+
+local TasksCellGui = COMMON.class("TasksGui")
+
+---@param gui_script MainMenuSceneGuiScript
+function TasksCellGui:initialize(template_name, gui_script)
+	self.gui_script = assert(gui_script)
+	self.template_name = assert(template_name)
+	self.vh = {
+		root = gui.get_node(self.template_name .. "/root"),
+		skip = gui.get_node(self.template_name .. "/skip"),
+		skip_lbl = gui.get_node(self.template_name .. "/skip/lbl"),
+		completed = gui.get_node(self.template_name .. "/completed"),
+		completed_lbl = gui.get_node(self.template_name .. "/completed/lbl"),
+		lbl_title = gui.get_node(self.template_name .. "/lbl_title"),
+	}
+	self.views = {
+		progress = GUI.ProgressBar({
+			root = gui.get_node(self.template_name .. "/progress/root"),
+			bg = gui.get_node(self.template_name .. "/progress/bg"),
+			progress = gui.get_node(self.template_name .. "/progress/progress"),
+			lbl = gui.get_node(self.template_name .. "/progress/progress_lbl")
+		}),
+		btn_skip = GUI.ButtonScale(self.template_name .. "/skip/btn")
+	}
+	self.idx = 1
+	self:init_gui()
+	self:set_completed(false)
+end
+
+function TasksCellGui:set_completed(completed)
+	gui.set_enabled(self.vh.completed, completed)
+	gui.set_enabled(self.vh.skip, not completed)
+end
+
+function TasksCellGui:set_progress(progress, max)
+	self.views.progress:set_value_max(max)
+	self.views.progress:set_value(progress, true)
+end
+
+function TasksCellGui:set_title(str)
+	local metrics = resource.get_text_metrics(gui.get_font_resource(gui.get_font(self.vh.lbl_title)), str)
+	local size = gui.get_size(self.vh.lbl_title).x
+	if (metrics.width > size) then
+		local new_scale = 0.45 * size / metrics.width
+		gui.set_scale(self.vh.lbl_title, vmath.vector3(new_scale))
+	end
+	gui.set_text(self.vh.lbl_title, str)
+end
+
+function TasksCellGui:set_idx(idx)
+	self.idx = assert(idx)
+end
+
+function TasksCellGui:init_gui()
+	gui.set_text(self.vh.completed_lbl, COMMON.LOCALIZATION.task_completed())
+	gui.set_text(self.vh.skip_lbl, COMMON.LOCALIZATION.task_skip())
+	self.views.btn_skip:set_input_listener(function()
+		self.gui_script:tasks_skip(self.idx)
+	end)
+	self.views.progress.lbl_format_value = function(progress)
+		return (math.floor(progress.animation.value))
+	end
+end
+
+function TasksCellGui:on_input(action_id, action)
+	if (self.views.btn_skip:on_input(action_id, action)) then return true end
+end
+
+local TasksGui = COMMON.class("TasksGui")
+
+function TasksGui:initialize(template_name, gui_script)
+	self.template_name = assert(template_name)
+	self.vh = {
+		root = gui.get_node(self.template_name .. "/root"),
+		slots = {
+			{ completed = gui.get_node(self.template_name .. "/star_slots/slot_1/completed") },
+			{ completed = gui.get_node(self.template_name .. "/star_slots/slot_2/completed") },
+			{ completed = gui.get_node(self.template_name .. "/star_slots/slot_3/completed") },
+		},
+		completed = {
+			root = gui.get_node("tasks/completed"),
+			title = gui.get_node("tasks/completed/title"),
+			btn_collect_lbl = gui.get_node("tasks/completed/btn_collect/lbl"),
+			reward_gem = {
+				icon = gui.get_node(self.template_name .. "/completed/reward_gem/icon"),
+				lbl = gui.get_node(self.template_name .. "/completed/reward_gem/lbl")
+			},
+			reward_star = {
+				icon = gui.get_node(self.template_name .. "/completed/reward_star/icon"),
+				lbl = gui.get_node(self.template_name .. "/completed/reward_star/lbl")
+			},
+		},
+		chest = gui.get_node("tasks/chest")
+	}
+	self.views = {
+		tasks = {
+			TasksCellGui(self.template_name .. "/1", gui_script),
+			TasksCellGui(self.template_name .. "/2", gui_script),
+			TasksCellGui(self.template_name .. "/3", gui_script),
+		},
+		btn_collect = GUI.ButtonScale(self.template_name .. "/completed/btn_collect")
+	}
+	self.state = nil
+	self:init_gui()
+	self:on_storage_changed()
+end
+
+function TasksGui:init_gui()
+	gui.set_text(self.vh.completed.title, COMMON.LOCALIZATION.tasks_reward_title())
+	gui.set_text(self.vh.completed.btn_collect_lbl, COMMON.LOCALIZATION.tasks_reward_btn_collect())
+	for i, task_view in ipairs(self.views.tasks) do
+		task_view:set_idx(i)
+	end
+	self.views.btn_collect:set_input_listener(function()
+		WORLD.storage.tasks:collect_reward()
+	end)
+end
+
+function TasksGui:update_tasks()
+	local completed_tasks = 0
+	for i, task_view in ipairs(self.views.tasks) do
+		task_view:set_title(WORLD.game.tasks:get_title(i))
+		local progress = WORLD.game.tasks:get_value(i)
+		local max = WORLD.game.tasks:get_max_value(i)
+		local completed = WORLD.game.tasks:is_completed(i)
+
+		task_view:set_progress(progress, max)
+		if (completed) then completed_tasks = completed_tasks + 1 end
+		task_view:set_completed(completed)
+	end
+	if (completed_tasks == 3) then
+		gui.set_enabled(self.vh.completed.root, true)
+		gui.set_enabled(self.vh.chest, false)
+		local reward = WORLD.storage.tasks:collect_get_reward()
+		gui.set_text(self.vh.completed.reward_gem.lbl, reward.gems)
+		GUI.set_nodes_to_center(self.vh.completed.reward_gem.lbl, true, self.vh.completed.reward_gem.icon,
+				false, 10)
+		gui.set_text(self.vh.completed.reward_star.lbl, reward.stars)
+		GUI.set_nodes_to_center(self.vh.completed.reward_star.lbl, true, self.vh.completed.reward_star.icon,
+				false, 10)
+	else
+		gui.set_enabled(self.vh.completed.root, false)
+		gui.set_enabled(self.vh.chest, true)
+	end
+	for i = 1, 3 do
+		local slot_view = self.vh.slots[i]
+		gui.set_enabled(slot_view.completed, i <= completed_tasks)
+	end
+end
+
+function TasksGui:update(dt)
+
+end
+
+function TasksGui:on_storage_changed()
+	self:update_tasks()
+end
+
+function TasksGui:on_input(action_id, action)
+	for i, task_view in ipairs(self.views.tasks) do
+		if task_view:on_input(action_id, action) then
+			return true
+		end
+	end
+	self.views.btn_collect:on_input(action_id, action)
+end
+
+---@class MainMenuSceneGuiScript:GuiScriptBase
+local Script = COMMON.class("MainMenuSceneGuiScript", BaseGuiScript)
+
+function Script:init()
+	self.avatars = {}
+	BaseGuiScript.init(self, { context_name = COMMON.CONTEXT.NAMES.MENU_GUI, input = false })
+	gui.set_render_order(COMMON.CONSTANTS.GUI_ORDER.MAIN_MENU)
+	--WORLD.sounds:play_sound(WORLD.sounds.sounds.lose)
+	self.animation_action = ACTIONS.Sequence()
+	self.animation_action.drop_empty = false
+	self.stars = 0
+	self:add_star(WORLD.storage.game:stars_get())
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.WINDOW_RESIZED):go_distinct(self.scheduler):subscribe(function()
+		self:on_resize()
+	end))
+	self:on_resize()
+end
+
+function Script:bind_vh()
+	self.vh = {
+		right = gui.get_node("right"),
+		bottom_left = gui.get_node("bottom_left"),
+		bottom_right = gui.get_node("bottom_right"),
+		left = gui.get_node("left"),
+		highscores = {},
+		highscores_loading = gui.get_node("highscore/loading"),
+		highscores_data = gui.get_node("highscore/data"),
+		top = gui.get_node("top"),
+		bottom = gui.get_node("bottom"),
+		star_cell_lbl = gui.get_node("star_cell/lbl"),
+		star_icon = gui.get_node("star_cell/icon"),
+		btn_play_lbl = gui.get_node("btn_play/lbl"),
+		tasks_title = gui.get_node("tasks/title"),
+		highscore_top_title_lbl = gui.get_node("highscore/top_title"),
+		need_stars = {
+			root = gui.get_node("need_stars/root"),
+			lbl_stars = gui.get_node("need_stars/lbl_stars"),
+			icon = gui.get_node("need_stars/icon"),
+			lbl_title = gui.get_node("need_stars/lbl"),
+			lbl_title_2 = gui.get_node("need_stars/lbl2"),
+		},
+		login_title = gui.get_node("btn_login/text"),
+		login = gui.get_node("login")
+	}
+	for i = 1, 10 do
+		self.vh.highscores[i] = {
+			root = gui.get_node("highscore/" .. i .. "/root"),
+			lbl_name = gui.get_node("highscore/" .. i .. "/lbl_name"),
+			lbl_score = gui.get_node("highscore/" .. i .. "/lbl_score"),
+			lbl_position = gui.get_node("highscore/" .. i .. "/lbl_position"),
+			bg = gui.get_node("highscore/" .. i .. "/bg"),
+			rect = gui.get_node("highscore/" .. i .. "/icon_border"),
+			icon = gui.get_node("highscore/" .. i .. "/icon")
+		}
+	end
+	self.views = {
+		btn_play = GUI.ButtonScale("btn_play"),
+		btn_shop = GUI.ButtonScale("btn_shop"),
+		btn_login = GUI.ButtonScale("btn_login"),
+		daily_gems = DailyGui("gems_daily"),
+		world_cell = WorldCell("world_cell"),
+		tasks = TasksGui("tasks", self)
+	}
+end
+
+function Script:init_gui()
+	BaseGuiScript.init_gui(self)
+	self.views.btn_play.input_on_pressed = true
+	self.views.btn_play.scale = 1
+	gui.set_text(self.vh.need_stars.lbl_title,COMMON.LOCALIZATION.need_stars_title_1())
+	gui.set_text(self.vh.need_stars.lbl_title_2,COMMON.LOCALIZATION.need_stars_title_2())
+	self.views.btn_play:set_input_listener(function()
+		if (WORLD.sdk.yagames_sdk and COMMON.html5_is_mobile()) then
+			WORLD.sdk.yagames_sdk:sticky_banner_hide()
+		end
+		WORLD.sdk:ads_commercial(function()
+			self:animate_hide()
+		end)
+	end)
+	self.views.btn_shop:set_input_listener(function()
+		SM:show(SM.MODALS.SHOP)
+	end)
+	self.views.btn_login:set_input_listener(function()
+		if (WORLD.sdk.is_yandex) then
+			WORLD.sdk.yagames_sdk:login_player()
+		end
+	end)
+
+	self.visible = false
+
+	self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.STAR_ADD):go(self.scheduler):subscribe(function()
+		local to = gui.get_screen_position(self.vh.star_icon)
+		local from = gui.get_screen_position(self.views.tasks.vh.completed.reward_star.icon)
+		local ctx = COMMON.CONTEXT:set_context_top_fly_objects()
+		local obj = ctx.data:create_fly_star()
+		local screen_scale_x = COMMON.RENDER.screen_size.w / 960
+		local screen_scale_y = COMMON.RENDER.screen_size.h / 540
+		WORLD.sounds:play_sound(WORLD.sounds.sounds.star_add)
+		obj:fly({
+			to = to,
+			from = from,
+			speed_x = 650 * screen_scale_x,
+			speed_y = 500 * screen_scale_y,
+			cb = function()
+				local ctx_main_menu = COMMON.CONTEXT:set_context_top_menu_gui()
+				self:add_star(1)
+				ctx_main_menu:remove()
+			end
+		})
+
+		ctx:remove()
+	end))
+
+	local btn_play_bg = gui.get_node("btn_play/bg")
+	gui.animate(btn_play_bg, "scale", vmath.vector3(1.05), vmath.vector({ -1, 0, 1 }),
+			2, 0, nil, gui.PLAYBACK_LOOP_PINGPONG)
+	gui.animate(btn_play_bg, "rotation.z", 5, vmath.vector({ -1, 0, 1 }),
+			1, 0, nil, gui.PLAYBACK_LOOP_PINGPONG)
+
+	gui.set_text(self.vh.btn_play_lbl, COMMON.LOCALIZATION.btn_play())
+	gui.set_text(self.vh.highscore_top_title_lbl, COMMON.LOCALIZATION.highscore_title())
+	if (COMMON.LOCALIZATION:locale_get() == "ru") then
+		gui.set_scale(self.vh.btn_play_lbl, vmath.vector3(0.9))
+	end
+	gui.set_text(self.vh.tasks_title, COMMON.LOCALIZATION.tasks_title())
+	gui.set_enabled(self.vh.login, WORLD.sdk.is_yandex)
+
+
+end
+
+function Script:animate_hide()
+	while (not self.animation_action:is_empty()) do self.animation_action:update(1) end
+	self.visible = false
+	local ctx = COMMON.CONTEXT:set_context_top_top_panel_gui()
+	ctx.data:animate_hide()
+	ctx:remove()
+
+	local ctx_fader = COMMON.CONTEXT:set_context_top_fader()
+	ctx_fader.data:hide()
+	ctx_fader:remove()
+
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(function()
+		COMMON.INPUT.release()
+	end)
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.views.btn_play.vh.root, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic })
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.right, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_left, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.left, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.top, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+												to = COLOR_INVISIBLE, time = 0.5, easing = TWEEN.easing.outCubic, delay = 0 })
+	self.animation_action:add_action(show_parallel)
+	self.animation_action:add_action(function()
+		WORLD.game:start()
+	end)
+end
+
+function Script:animate_show()
+	while (not self.animation_action:is_empty()) do
+		self.animation_action:update(1)
+	end
+
+	--show scene load new highscores
+	WORLD.highscores:highscores_load(WORLD.storage.game:world_id_get())
+
+	self.views.btn_play.pressed_now_handled = false
+	self.views.btn_play:on_input(nil)
+
+	local ctx_fader = COMMON.CONTEXT:set_context_top_fader()
+	ctx_fader.data:show()
+	ctx_fader:remove()
+
+	gui.set_color(self.vh.right, COLOR_INVISIBLE)
+	gui.set_color(self.vh.bottom_left, COLOR_INVISIBLE)
+	gui.set_color(self.vh.bottom_right, COLOR_INVISIBLE)
+	gui.set_color(self.vh.left, COLOR_INVISIBLE)
+	gui.set_color(self.views.btn_play.vh.root, COLOR_INVISIBLE)
+	gui.set_color(self.vh.top, COLOR_INVISIBLE)
+	gui.set_color(self.vh.bottom, COLOR_INVISIBLE)
+
+	local show_parallel = ACTIONS.Parallel()
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.right, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_left, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.left, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.views.btn_play.vh.root, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.top, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	show_parallel:add_action(ACTIONS.TweenGui { object = self.vh.bottom_right, property = "color", v4 = true,
+												to = COLOR_WHITE, time = 0.5, easing = TWEEN.easing.inQuad, delay = 0 })
+	show_parallel:add_action(function()
+		COMMON.coroutine_wait(0.25)
+		local ctx = COMMON.CONTEXT:set_context_top_top_panel_gui()
+		ctx.data:animate_show()
+		ctx:remove()
+		self.visible = true
+	end)
+
+	self.animation_action:add_action(show_parallel)
+	self.animation_action:add_action(function()
+		COMMON.INPUT.acquire()
+		if (WORLD.sdk.yagames_sdk) then
+			WORLD.sdk.yagames_sdk:sticky_banner_show()
+		end
+	end)
+end
+
+local HIGHSCORES_COLOR_BG_1 = COMMON.LUME.color_parse_hex("#D2EFFF")
+local HIGHSCORES_COLOR_BG_2 = COMMON.LUME.color_parse_hex("#92D8FF")
+local HIGHSCORES_COLOR_BG_2_YOU = COMMON.LUME.color_parse_hex("#FFE76B")
+local CELL_BASE = {
+	font_color = COMMON.LUME.color_parse_hex("#295BDC"),
+	rect_color = COMMON.LUME.color_parse_hex("#3686FF")
+}
+local CELL_YOU = {
+	font_color = COMMON.LUME.color_parse_hex("#5B8600"),
+	rect_color = COMMON.LUME.color_parse_hex("#88C20D")
+}
+function Script:highscore_update()
+	local highscores_data = WORLD.highscores:get_highscores_by_world(WORLD.storage.game:world_id_get())
+	if (highscores_data.status == "load") then
+		gui.set_enabled(self.vh.highscores_loading, false)
+		gui.set_enabled(self.vh.highscores_data, true)
+		local highscores_list = highscores_data.list
+
+		for i, data in ipairs(highscores_list) do
+			local cell = self.vh.highscores[i]
+			local cell_config = CELL_BASE
+			if (data.player) then
+				gui.set_color(cell.bg, HIGHSCORES_COLOR_BG_2_YOU)
+				cell_config = CELL_YOU
+			else
+				gui.set_color(cell.bg, i % 2 == 1 and HIGHSCORES_COLOR_BG_1 or HIGHSCORES_COLOR_BG_2)
+			end
+			if (data.bot) then
+				gui.set_text(cell.lbl_name, COMMON.LOCALIZATION["name_" .. data.name]())
+			else
+				local name = data.name
+				local name_len = utf8.len(name)
+				if (name_len > 16) then
+					name = utf8.sub(name, 1, 14) .. "..."
+				end
+				GUI.autosize_text(cell.lbl_name, 0.5, name)
+			end
+
+			gui.set_text(cell.lbl_score, data.score)
+			local position = data.position
+			if (position > 999) then
+				position = "999+"
+			end
+			local metrics = resource.get_text_metrics(gui.get_font_resource(gui.get_font(cell.lbl_position)), tostring(position))
+			local size = gui.get_size(cell.lbl_position).x
+			if (metrics.width > size) then
+				local new_scale = 0.33 * size / metrics.width
+				gui.set_scale(cell.lbl_position, vmath.vector3(new_scale))
+			end
+			gui.set_text(cell.lbl_position, position)
+
+			gui.set_color(cell.lbl_score, cell_config.font_color)
+			gui.set_color(cell.lbl_name, cell_config.font_color)
+			gui.set_color(cell.lbl_position, cell_config.font_color)
+			gui.set_color(cell.rect, cell_config.rect_color)
+			gui.set_texture(cell.icon, gui.get_texture(cell.root))
+			gui.play_flipbook(cell.icon, data.icon)
+
+			--	data.url = "https://games-sdk.yandex.ru/games/api/sdk/v1/player/avatar/DCVBPLEFQ673SN53VQFBTE527DP7QH62WFIDLAQGKG62WUQTOLYZQBBCJ6NZGSVDXGCWB6W4AGJHYJL4KGRM4XU7XXZ5MAIOV3LYWKAKD3TDWCKZSAIGO5M56UAW23BQR34ZTOFFAFKYCBYLRQMXC===/islands-retina-small"
+
+			if (data.url) then
+				local url = data.url
+				local texture_id = url
+				if (self.avatars[texture_id] and self.avatars[texture_id].loaded) then
+					gui.set_texture(cell.icon, texture_id)
+				elseif not self.avatars[texture_id] then
+					print("load avatar:" .. url)
+					self.avatars[texture_id] = { loaded = false }
+					http.request(url, "GET", function(_, id, res)
+						if res.status ~= 200 and res.status ~= 304 then
+							print("Unable to http request")
+							self.avatars[texture_id] = nil
+							return
+						end
+
+						local img = image.load(res.response)
+						if not img then
+							print("Unable to load image")
+							self.avatars[texture_id] = nil
+							return
+						end
+
+						local ok, reason = gui.new_texture(texture_id, img.width, img.height, img.type, img.buffer)
+						if (not ok) then
+							print("Unable to create texture")
+							self.avatars[texture_id] = nil
+						else
+							self.avatars[texture_id] = { loaded = true }
+							self:highscore_update()
+						end
+					end)
+				end
+			end
+		end
+	elseif highscores_data.status == "loading" then
+		gui.set_enabled(self.vh.highscores_loading, true)
+		gui.set_enabled(self.vh.highscores_data, false)
+	end
+
+end
+
+function Script:tasks_skip(idx)
+	if (not WORLD.storage.tasks:is_completed(idx)) then
+		WORLD.sdk:ads_rewarded(function(success)
+			if (success) then
+				WORLD.storage.tasks:set_completed(idx)
+			end
+		end)
+	end
+end
+
+function Script:need_run_update()
+	local def = WORLD.storage.game:world_id_def_get()
+	gui.set_text(self.vh.need_stars.lbl_stars, def.stars)
+	GUI.set_nodes_to_center(self.vh.need_stars.lbl_stars, true,
+			self.vh.need_stars.icon, false, 5)
+	local stars = WORLD.storage.game:stars_get()
+	gui.set_enabled(self.vh.need_stars.root, stars < def.stars)
+	self.views.btn_play:set_enabled(stars >= def.stars)
+end
+
+function Script:on_storage_changed()
+	self:need_run_update()
+	self.views.tasks:on_storage_changed()
+	self.views.daily_gems:on_storage_changed()
+	self.views.world_cell:on_storage_changed()
+	self:update_login_title()
+	self:highscore_update()
+end
+
+function Script:add_star(stars)
+	self.stars = self.stars + stars
+	gui.set_text(self.vh.star_cell_lbl, self.stars)
+end
+
+function Script:update(dt)
+	BaseGuiScript.update(self, dt)
+	self.animation_action:update(dt)
+	self.views.daily_gems:update(dt)
+	self.views.tasks:update(dt)
+end
+
+function Script:on_input(action_id, action)
+	if (self.visible) then
+		if (self.views.btn_play:on_input(action_id, action)) then return true end
+		if (self.views.btn_shop:on_input(action_id, action)) then return true end
+		if (self.views.daily_gems:on_input(action_id, action)) then return true end
+		if (self.views.tasks:on_input(action_id, action)) then return true end
+		if (self.views.world_cell:on_input(action_id, action)) then return true end
+		if (self.views.btn_login:on_input(action_id, action)) then return true end
+	end
+end
+
+function Script:on_resize()
+	local insets, status = safearea.get_insets()
+	if (status == safearea.STATUS_OK) then
+		local d_left = 960 * insets.left / COMMON.RENDER.screen_size.w
+		local d_right = 960 * insets.right / COMMON.RENDER.screen_size.w
+		gui.set_position(self.vh.left, vmath.vector3(d_left, 270, 0))
+		gui.set_position(self.vh.bottom_left, vmath.vector3(d_left, 0, 0))
+		gui.set_position(self.vh.right, vmath.vector3(960 - d_right, 270, 0))
+		gui.set_position(self.vh.bottom_right, vmath.vector3(960 - d_right, 0, 0))
+	elseif (status == safearea.STATUS_NOT_READY_YET) then
+		timer.delay(0.5, false, function()
+			self:on_resize()
+		end)
+	end
+end
+
+function Script:update_login_title()
+	print("update login title")
+	local text = COMMON.LOCALIZATION.login_name()
+	self.views.btn_login:set_ignore_input(false)
+	if (WORLD.sdk.is_yandex) then
+		local YA = WORLD.sdk.yagames_sdk.ya
+		if (YA.player_ready) then
+			local name = YA.player_get_name()
+			if (YA.player_get_name() == "") then
+				text = COMMON.LOCALIZATION.login_name()
+			else
+				text = name
+				self.views.btn_login:set_ignore_input(true)
+			end
+		else
+			text = COMMON.LOCALIZATION.login_auth()
+		end
+		gui.set_text(self.vh.login_title, text)
+	else
+		gui.set_text(self.vh.login_title, COMMON.LOCALIZATION.login_auth())
+	end
+end
+
+COMMON.N28S.register_scripts({ Script() })

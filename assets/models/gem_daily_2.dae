@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 3.2.2 commit date:2022-08-02, commit time:18:15, hash:bcfdb14560e7</authoring_tool>
+    </contributor>
+    <created>2022-12-04T19:54:29</created>
+    <modified>2022-12-04T19:54:29</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="Material_003-effect">
+      <profile_COMMON>
+        <newparam sid="gem_textures_png-surface">
+          <surface type="2D">
+            <init_from>gem_textures_png</init_from>
+          </surface>
+        </newparam>
+        <newparam sid="gem_textures_png-sampler">
+          <sampler2D>
+            <source>gem_textures_png-surface</source>
+          </sampler2D>
+        </newparam>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <texture texture="gem_textures_png-sampler" texcoord="Gem8-mesh-map-0"/>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.45</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images>
+    <image id="gem_textures_png" name="gem_textures_png">
+      <init_from>gem_textures.png</init_from>
+    </image>
+  </library_images>
+  <library_materials>
+    <material id="Material_003-material" name="Material.003">
+      <instance_effect url="#Material_003-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="Gem8-mesh" name="Gem8">
+      <mesh>
+        <source id="Gem8-mesh-positions">
+          <float_array id="Gem8-mesh-positions-array" count="69">0.1666666 -0.125 0.2596618 0.1666666 -0.125 0.3985506 0.08333331 -0.125 0.2041062 -0.1666666 -0.125 0.2596618 -0.1666666 -0.125 0.3985506 -0.08333331 -0.125 0.2041062 0 -0.125 0.6763285 0 -0.125 0.2596618 0.1666666 0.125 0.2596619 0.1666666 0.125 0.3985507 0.08333331 0.125 0.2041062 0.375 0 0.2596618 0.375 0 0.3985507 0.1666666 0 0.009661793 -0.1666666 0.125 0.2596619 -0.1666666 0.125 0.3985507 -0.08333331 0.125 0.2041062 0 0 1.009662 -0.375 0 0.2596618 -0.375 0 0.3985507 -0.1666666 0 0.009661793 0 0.125 0.6763285 0 0.125 0.2596619</float_array>
+          <technique_common>
+            <accessor source="#Gem8-mesh-positions-array" count="23" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Gem8-mesh-normals">
+          <float_array id="Gem8-mesh-normals-array" count="84">0.5144956 -0.8574931 0 -0.5144956 -0.8574931 0 0.4916049 -0.8193423 0.2949627 0 -0.8411785 -0.5407577 0.4728661 -0.7881106 -0.3940553 -0.2857146 -0.8571428 -0.4285714 0 -1 0 -0.4916049 -0.8193422 0.2949627 0.5144955 0.8574931 0 -0.5144955 0.8574931 0 0.4916049 0.8193421 0.2949629 0 0.8411785 -0.5407577 0.2857151 0.8571428 -0.4285712 -0.4728659 0.7881107 -0.3940551 0 1 0 -0.4916049 0.8193421 0.2949629 0.5144956 -0.857493 0 -0.5144956 -0.857493 0 0.4966443 -0.8126909 0.3047589 0.2857146 -0.8571428 -0.4285714 -0.4728661 -0.7881106 -0.3940553 -0.4966443 -0.8126909 0.3047589 0.5144957 0.8574931 0 -0.5144957 0.857493 0 0.4966443 0.8126909 0.3047589 0.4728659 0.7881107 -0.3940551 -0.2857151 0.8571428 -0.4285712 -0.4966443 0.8126909 0.3047589</float_array>
+          <technique_common>
+            <accessor source="#Gem8-mesh-normals-array" count="28" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Gem8-mesh-map-0">
+          <float_array id="Gem8-mesh-map-0-array" count="252">0.5625 0.25 0.65625 0.3828125 0.5625 0.3828125 0.3541666 0.3828125 0.4375 0.25 0.4375 0.3828125 0.65625 0.3828125 0.5 0.6484375 0.5625 0.3828125 0.53125 0.1953125 0.4375 0.0078125 0.5625 0.0078125 0.5625 0.25 0.5625 0.0078125 0.65625 0.25 0.4375 0.25 0.4375 0.0078125 0.46875 0.1953125 0.4375 0.3828125 0.5 0.25 0.5 0.6484375 0.5 0.6484375 0.3541666 0.3828125 0.4375 0.3828125 0.5625 0.3828125 0.5 0.25 0.5625 0.25 0.53125 0.1953125 0.5625 0.25 0.5 0.25 0.65625 0.3828125 0.5625 0.25 0.5625 0.3828125 0.4375 0.25 0.3541666 0.3828125 0.4375 0.3828125 0.5 0.6484375 0.65625 0.3828125 0.5625 0.3828125 0.4375 0.0078125 0.53125 0.1953125 0.5625 0.0078125 0.5625 0.25 0.5625 0.0078125 0.53125 0.1953125 0.4375 0.25 0.4375 0.0078125 0.3541666 0.25 0.5 0.25 0.4375 0.3828125 0.5 0.6484375 0.3541666 0.3828125 0.5 0.6484375 0.4375 0.3828125 0.5625 0.3828125 0.5 0.25 0.5 0.6484375 0.5 0.25 0.5625 0.25 0.53125 0.1953125 0.5625 0.25 0.65625 0.25 0.65625 0.3828125 0.3541666 0.3828125 0.3541666 0.25 0.4375 0.25 0.65625 0.3828125 0.5 0.9765625 0.5 0.6484375 0.53125 0.1953125 0.46875 0.1953125 0.4375 0.0078125 0.5625 0.25 0.53125 0.1953125 0.5625 0.0078125 0.4375 0.25 0.3541666 0.25 0.4375 0.0078125 0.4375 0.3828125 0.4375 0.25 0.5 0.25 0.5 0.6484375 0.5 0.9765625 0.3541666 0.3828125 0.5625 0.3828125 0.5 0.6484375 0.5 0.25 0.4375 0.25 0.46875 0.1953125 0.5 0.25 0.46875 0.1953125 0.53125 0.1953125 0.5 0.25 0.65625 0.3828125 0.65625 0.25 0.5625 0.25 0.4375 0.25 0.3541666 0.25 0.3541666 0.3828125 0.5 0.6484375 0.5 0.9765625 0.65625 0.3828125 0.4375 0.0078125 0.46875 0.1953125 0.53125 0.1953125 0.5625 0.25 0.65625 0.25 0.5625 0.0078125 0.4375 0.25 0.46875 0.1953125 0.4375 0.0078125 0.5 0.25 0.4375 0.25 0.4375 0.3828125 0.3541666 0.3828125 0.5 0.9765625 0.5 0.6484375 0.5625 0.3828125 0.5625 0.25 0.5 0.25 0.53125 0.1953125 0.46875 0.1953125 0.5 0.25 0.46875 0.1953125 0.4375 0.25 0.5 0.25</float_array>
+          <technique_common>
+            <accessor source="#Gem8-mesh-map-0-array" count="126" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Gem8-mesh-vertices">
+          <input semantic="POSITION" source="#Gem8-mesh-positions"/>
+        </vertices>
+        <triangles material="Material_003-material" count="42">
+          <input semantic="VERTEX" source="#Gem8-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Gem8-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#Gem8-mesh-map-0" offset="2" set="0"/>
+          <p>0 0 0 12 0 1 1 0 2 19 1 3 3 1 4 4 1 5 12 2 6 6 2 7 1 2 8 2 3 9 20 3 10 13 3 11 0 4 12 13 4 13 11 4 14 3 5 15 20 5 16 5 5 17 4 6 18 7 6 19 6 6 20 6 7 21 19 7 22 4 7 23 1 6 24 7 6 25 0 6 26 2 6 27 0 6 28 7 6 29 12 8 30 8 8 31 9 8 32 14 9 33 19 9 34 15 9 35 21 10 36 12 10 37 9 10 38 20 11 39 10 11 40 13 11 41 8 12 42 13 12 43 10 12 44 14 13 45 20 13 46 18 13 47 22 14 48 15 14 49 21 14 50 19 15 51 21 15 52 15 15 53 9 14 54 22 14 55 21 14 56 22 14 57 8 14 58 10 14 59 0 16 60 11 16 61 12 16 62 19 17 63 18 17 64 3 17 65 12 18 66 17 18 67 6 18 68 2 3 69 5 3 70 20 3 71 0 19 72 2 19 73 13 19 74 3 20 75 18 20 76 20 20 77 4 6 78 3 6 79 7 6 80 6 21 81 17 21 82 19 21 83 1 6 84 6 6 85 7 6 86 3 6 87 5 6 88 7 6 89 5 6 90 2 6 91 7 6 92 12 22 93 11 22 94 8 22 95 14 23 96 18 23 97 19 23 98 21 24 99 17 24 100 12 24 101 20 11 102 16 11 103 10 11 104 8 25 105 11 25 106 13 25 107 14 26 108 16 26 109 20 26 110 22 14 111 14 14 112 15 14 113 19 27 114 17 27 115 21 27 116 9 14 117 8 14 118 22 14 119 10 14 120 16 14 121 22 14 122 16 14 123 14 14 124 22 14 125</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="Gem8" name="Gem8" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#Gem8-mesh" name="Gem8">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Material_003-material" target="#Material_003-material">
+                <bind_vertex_input semantic="Gem8-mesh-map-0" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

@@ -1,0 +1,7 @@
+mesh: "/assets/models/jewel.dae"
+material: "/assets/materials/gem_material.material"
+textures: "/assets/textures/rgb/jewel.png"
+skeleton: ""
+animations: ""
+default_animation: ""
+name: "unnamed"

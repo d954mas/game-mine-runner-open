@@ -1,0 +1,11 @@
+[project]
+title = Mine Runner
+
+[android]
+package = com.d954mas.game.minerunner
+
+[game]
+version = release
+
+[native_extension]
+app_manifest = /app_manifest_release.appmanifest

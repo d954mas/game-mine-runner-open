@@ -1,0 +1,161 @@
+local Features = require "libs.features"
+local COMMON = require "libs.common"
+
+local SM = require "libs_project.sm"
+local DEBUG_INFO = require "debug.debug_info"
+local SCENE_LOADER = require "libs.sm.scene_loader"
+
+local SOUNDS = require "libs.sounds"
+local WORLD = require "world.world"
+local YA = require "libs.yagames.yagames"
+
+local SITELOCK = require "libs_project.sitelock"
+local TAG = "INIT_CONTROLLER"
+local IS_DEV = COMMON.CONSTANTS.VERSION_IS_DEV
+
+---@class ScriptMain
+local Script = COMMON.new_n28s()
+
+function Script:scenes_register()
+	SM:register_scenes()
+end
+
+function Script:init_random()
+	math.randomseed(os.time())
+	math.random()
+	math.random()
+	math.random()
+	math.random()
+end
+
+function Script:show_start_scene()
+	if (WORLD.sdk.is_crazygames) then
+		if (SITELOCK.verify_domains_crazy()) then
+			SM:show(SM.SCENES.GAME)
+		else
+			print("bad site")
+		end
+	elseif (WORLD.sdk.is_playmarket) then
+		SM:show(SM.SCENES.GAME)
+	elseif (WORLD.sdk.is_yandex) then
+		if (SITELOCK.verify_domains_yandex()) then
+			YA.player_init({ scopes = false }, function(_, err)
+				print("YA player init")
+				if (err) then
+					print("YA player init error:" .. err)
+				end
+				if (YA.player_ready) then
+					print("PLAYER READY")
+					print(YA.player_get_unique_id())
+					print(YA.player_get_name())
+					--load storage
+					WORLD.sdk.yagames_sdk:ya_load_storage(function()
+						--WORLD.game:leaderboard_send_data_all_pages()
+						SM:show(SM.SCENES.GAME)
+						WORLD.sdk.yagames_sdk:leaderboard_init_send()
+						COMMON.APPLICATION.THREAD:add(function()
+							while (SM:is_working()) do coroutine.yield() end
+							WORLD.sdk.yagames_sdk.ya.loading_api_ready(function(_, result)
+							end)
+						end)
+					end)
+				else
+					print("player not ready")
+					SM:show(SM.SCENES.GAME)
+				end
+			end)
+		else
+			print("bad site")
+		end
+	elseif (WORLD.sdk.is_game_distribution) then
+		SM:show(SM.SCENES.GAME)
+	elseif (WORLD.sdk.is_vk) then
+		SM:show(SM.SCENES.GAME)
+	else
+		--disable site lock for open source
+		--if (SITELOCK.verify_domain({ "your site" })) then
+			SM:show(SM.SCENES.GAME)
+		--else
+		--	print("bad site")
+		--end
+	end
+end
+
+function Script:init()
+	self.url = msg.url()
+	self.scheduler = COMMON.RX.CooperativeScheduler.create()
+	self.subscription = COMMON.RX.SubscriptionsStorage()
+	--COMMON.i("version:" .. COMMON.CONSTANTS.PROJECT_VERSION, TAG)
+	COMMON.FEATURES = Features()
+	if (COMMON.CONSTANTS.VERSION_IS_RELEASE) then
+		COMMON.FEATURES:prod_config()
+	else
+		COMMON.FEATURES:debug_config()
+	end
+	COMMON.FEATURES:load()
+
+	COMMON.CONTEXT:register(COMMON.CONTEXT.NAMES.MAIN, self)
+
+	self:scenes_register()
+	self:init_random()
+
+	COMMON.i("init time:" .. socket.gettime() - COMMON.GLOBAL.time_init_start)
+
+	--fixed set group gain
+	timer.delay(0, false, function()
+		SOUNDS:on_storage_changed()
+	end)
+
+	if (jstodef) then
+		jstodef.add_listener(function(_, message_id, message)
+			COMMON.EVENT_BUS:event(COMMON.EVENTS.JSTODEF, { message_id = message_id, message = message })
+		end)
+	end
+	window.set_listener(function(self, event, data)
+		COMMON.EVENT_BUS:event(COMMON.EVENTS.WINDOW_EVENT, { event = event, data = data })
+
+	end)
+	if (WORLD.sdk.is_yandex) then
+		self.subscription:add(COMMON.EVENT_BUS:subscribe(COMMON.EVENTS.STORAGE_SAVED):subscribe(function()
+			WORLD.sdk.yagames_sdk:ya_save_storage()
+		end))
+	end
+
+	WORLD.sdk:init(function()
+		if (poki_sdk) then
+			--add sitelock
+		end
+		self:show_start_scene()
+	end)
+	COMMON.INPUT.acquire(self.url)
+end
+
+function Script:update(dt)
+	--init input always on top
+	COMMON.INPUT.acquire(self.url)
+	COMMON.APPLICATION.THREAD:update(dt)
+	SM:update(dt)
+	SOUNDS:update(dt)
+	if IS_DEV then DEBUG_INFO.update(dt) end
+	WORLD:update(dt)
+	self.scheduler:update(dt)
+end
+
+function Script:final()
+	COMMON.INPUT.clear()
+	COMMON.CONTEXT:unregister(COMMON.CONTEXT.NAMES.MAIN)
+	self.subscription:unsubscribe()
+end
+
+function Script:on_input(action_id, action)
+	COMMON.INPUT.handle_pressed_keys(action_id, action)
+	if (COMMON.INPUT.IGNORE) then return true end
+end
+
+function Script:on_message(message_id, message, sender)
+	if (message_id == COMMON.HASHES.MSG.LOADING.PROXY_LOADED) then
+		SCENE_LOADER.load_done(sender)
+	end
+end
+
+COMMON.N28S.register(Script())

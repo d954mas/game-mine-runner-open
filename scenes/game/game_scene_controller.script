@@ -1,0 +1,62 @@
+local COMMON = require "libs.common"
+local WORLD = require "world.world"
+local ENUMS = require "world.enums.enums"
+
+---@class ScriptGame
+local Script = COMMON.new_n28s()
+
+function Script:init()
+	self.scene_on_top = false
+	COMMON.input_acquire()
+	COMMON.CONTEXT:register(COMMON.CONTEXT.NAMES.GAME, self)
+	local time = socket.gettime()
+	WORLD.game:game_loaded()
+
+	local delay = (socket.gettime() - time)
+	COMMON.i("total level load:" .. delay, "LEVELS")
+
+	timer.delay(0, false, function()
+		if (WORLD.storage.game:is_tutorial_completed()) then
+			local ctx = COMMON.CONTEXT:set_context_top_menu_gui()
+			ctx.data:animate_show()
+			ctx:remove()
+		else
+			local ctx = COMMON.CONTEXT:set_context_top_menu_gui()
+			ctx.data:animate_hide()
+			while (not ctx.data.animation_action:is_empty()) do ctx.data.animation_action:update(1) end
+			ctx:remove()
+
+			local ctx_game_gui = COMMON.CONTEXT:set_context_top_game_gui()
+			ctx_game_gui.data:game_gui_show(false)
+			while (not ctx_game_gui.data.animation_game_gui:is_empty()) do ctx_game_gui.data.animation_game_gui:update(1) end
+			ctx_game_gui.data:tutorial_begin()
+			ctx_game_gui:remove()
+
+			WORLD.game.state.state = ENUMS.GAME_STATE.TUTORIAL_WAIT
+		end
+
+	end)
+
+	--fixed blink aftre loading before game
+	if (html_utils) then
+		timer.delay(0, false, function()
+			html_utils.hide_bg()
+		end)
+	end
+end
+
+function Script:update(dt)
+	WORLD.game:update(dt)
+end
+
+function Script:final()
+	COMMON.input_release()
+	COMMON.CONTEXT:unregister(COMMON.CONTEXT.NAMES.GAME)
+	WORLD.game:final()
+end
+
+function Script:on_input(action_id, action)
+	return WORLD.game:on_input(action_id, action)
+end
+
+COMMON.N28S.register(Script())
