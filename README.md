@@ -1,17 +1,20 @@
-# Welcome to Defold
+# Mine Runner 3D 
 
-This project was created from the "basic 3D" project template.
+This is an example of how can look small game made in defold. Maybe you find something usefull in my project:)
 
-The settings in ["game.project"](defold://open?path=/game.project) are mostly set to the default values. The render script is a modified version of the default render script with the addition that models are rendered in a separate pass after 2D components such as sprites and tilemaps. The physics type is set to 3D and not 2D.
+Open source version same as release. But i removed all sounds/music and change some textures. Because i use paid assets.
 
-The project contains a bootstrap ["main.collection"](defold://open?path=/main/main.collection) that includes a game object with a camera component and a game object with three different models.
+[PLAY](https://www.crazygames.com/game/mine-runner)
 
-Check out [the documentation pages](https://defold.com/learn) for examples, tutorials, manuals and API docs.
+More details in [Forum post](https://forum.defold.com/t/mine-runner/71803/39)
 
-If you run into trouble, help is available in [our forum](https://forum.defold.com).
+If you like it you can support me.
 
-Happy Defolding!
+[![](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/d954mas)
 
-## Credits
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/d954mas)
 
-* Textures by Kenney (https://www.kenney.nl)
+https://github.com/d954mas/game-mine-runner-open/assets/2655263/8e25f907-e462-4ba5-b928-6b587f1196bf
+
+
+
